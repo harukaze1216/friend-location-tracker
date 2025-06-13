@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Location, MapPoint } from '../types';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.js`;
 
 interface MapViewerProps {
   pdfFile: File | null;
@@ -113,9 +113,9 @@ const MapViewer: React.FC<MapViewerProps> = ({ pdfFile, pdfUrl, locations, onMap
               </div>
             }
             options={{
-              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/cmaps/',
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@4.8.69/cmaps/',
               cMapPacked: true,
-              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/standard_fonts/',
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@4.8.69/standard_fonts/',
             }}
           >
             <Page 
