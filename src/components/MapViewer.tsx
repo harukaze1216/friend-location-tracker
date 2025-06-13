@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Location, MapPoint } from '../types';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.js`;
+// Disable worker to avoid version conflicts
+pdfjs.GlobalWorkerOptions.workerSrc = false;
 
 interface MapViewerProps {
   pdfFile: File | null;
