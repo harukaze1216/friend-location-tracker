@@ -2,7 +2,7 @@
   "name": "friend-location-tracker",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://YOUR_USERNAME.github.io/friend-location-tracker",
+  "homepage": "https://harukaze1216.github.io/friend-location-tracker",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.10",
     "@testing-library/dom": "^10.4.0",
