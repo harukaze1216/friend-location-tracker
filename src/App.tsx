@@ -25,6 +25,7 @@ function App() {
 
   const loadDefaultPdf = () => {
     const defaultPdfUrl = `${process.env.PUBLIC_URL}/location_map.pdf`;
+    console.log('PDF URL:', defaultPdfUrl);
     setPdfUrl(defaultPdfUrl);
   };
 

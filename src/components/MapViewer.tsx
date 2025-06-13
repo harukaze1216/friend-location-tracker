@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Location, MapPoint } from '../types';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface MapViewerProps {
   pdfFile: File | null;
@@ -100,8 +100,23 @@ const MapViewer: React.FC<MapViewerProps> = ({ pdfFile, pdfUrl, locations, onMap
           <Document
             file={pdfFile || pdfUrl}
             onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={(error) => {
+              console.error('PDF Load Error:', error);
+              console.log('Trying to load:', pdfFile || pdfUrl);
+            }}
             loading={<div className="p-4">PDF読み込み中...</div>}
-            error={<div className="p-4 text-red-500">PDFの読み込みに失敗しました</div>}
+            error={
+              <div className="p-4 text-red-500">
+                <p>PDFの読み込みに失敗しました</p>
+                <p className="text-sm">URL: {pdfUrl}</p>
+                <p className="text-sm">ブラウザのコンソールでエラー詳細を確認してください</p>
+              </div>
+            }
+            options={{
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/cmaps/',
+              cMapPacked: true,
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/standard_fonts/',
+            }}
           >
             <Page 
               pageNumber={pageNumber} 
