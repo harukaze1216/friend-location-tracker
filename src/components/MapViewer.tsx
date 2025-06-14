@@ -24,7 +24,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
   onUserLocationDrag,
   onUserLocationClick
 }) => {
-  const [scale, setScale] = useState<number>(1.0);
+  // モバイルデバイスを検出
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+  };
+  
+  const [scale, setScale] = useState<number>(isMobile() ? 0.7 : 1.0);
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
@@ -93,7 +98,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     event.preventDefault();
     
     // ドラッグを検出
-    const threshold = 5; // 5px以上動いたらドラッグとみなす
+    const threshold = 3; // しきい値を下げて反応を良くする
     const deltaX = Math.abs(event.clientX - dragStart.x);
     const deltaY = Math.abs(event.clientY - dragStart.y);
     
@@ -102,21 +107,18 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
     
-    // スクロールを考慮した位置計算
-    const x = (event.clientX - rect.left + scrollLeft) / scale;
-    const y = (event.clientY - rect.top + scrollTop) / scale;
+    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
+    const x = (event.clientX - rect.left) / scale;
+    const y = (event.clientY - rect.top) / scale;
     
-    // ドラッグ中の位置を更新（DOM操作で一時的に表示）
+    // ドラッグ中の位置を更新（DOM操作で高速に）
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
-      // スクロール位置に関係なく、絶対位置で設定
-      marker.style.left = `${x * scale}px`;
-      marker.style.top = `${y * scale}px`;
-      marker.style.transform = 'translate(-50%, -50%)';
-      marker.style.position = 'absolute';
+      // transform3dを使用してハードウェアアクセラレーションを有効化
+      marker.style.transform = `translate3d(${x * scale - 20}px, ${y * scale - 20}px, 0)`;
+      marker.style.left = '0px';
+      marker.style.top = '0px';
     }
   };
 
@@ -130,7 +132,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!touch) return;
     
     // ドラッグを検出
-    const threshold = 5;
+    const threshold = 3; // しきい値を下げて反応を良くする
     const deltaX = Math.abs(touch.clientX - dragStart.x);
     const deltaY = Math.abs(touch.clientY - dragStart.y);
     
@@ -139,20 +141,18 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
     
-    // スクロールを考慮した位置計算
-    const x = (touch.clientX - rect.left + scrollLeft) / scale;
-    const y = (touch.clientY - rect.top + scrollTop) / scale;
+    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
+    const x = (touch.clientX - rect.left) / scale;
+    const y = (touch.clientY - rect.top) / scale;
     
-    // ドラッグ中の位置を更新
+    // ドラッグ中の位置を更新（高速化）
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
-      marker.style.left = `${x * scale}px`;
-      marker.style.top = `${y * scale}px`;
-      marker.style.transform = 'translate(-50%, -50%)';
-      marker.style.position = 'absolute';
+      // transform3dを使用してハードウェアアクセラレーションを有効化
+      marker.style.transform = `translate3d(${x * scale - 20}px, ${y * scale - 20}px, 0)`;
+      marker.style.left = '0px';
+      marker.style.top = '0px';
     }
   };
 
@@ -160,10 +160,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!isDragging || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    const x = (event.clientX - rect.left + scrollLeft) / scale;
-    const y = (event.clientY - rect.top + scrollTop) / scale;
+    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
+    const x = (event.clientX - rect.left) / scale;
+    const y = (event.clientY - rect.top) / scale;
     
     // 実際にドラッグした場合のみ位置更新
     if (hasDragged && onUserLocationDrag && isDragging) {
@@ -189,10 +188,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
       if (!touch) return;
       
       const rect = containerRef.current.getBoundingClientRect();
-      const scrollLeft = containerRef.current.scrollLeft;
-      const scrollTop = containerRef.current.scrollTop;
-      const x = (touch.clientX - rect.left + scrollLeft) / scale;
-      const y = (touch.clientY - rect.top + scrollTop) / scale;
+      // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
+      const x = (touch.clientX - rect.left) / scale;
+      const y = (touch.clientY - rect.top) / scale;
       
       // 実際にドラッグした場合のみ位置更新
       if (hasDragged && onUserLocationDrag && isDragging) {
@@ -525,8 +523,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
       <div 
         ref={containerRef}
-        className={`relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${
-          mapMode === 'navigation' ? 'touch-manipulation' : isDragging ? 'touch-none' : 'touch-manipulation'
+        className={`relative border border-gray-300 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${
+          mapMode === 'navigation' ? 'overflow-auto touch-manipulation' : 'overflow-hidden touch-none'
         }`}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
