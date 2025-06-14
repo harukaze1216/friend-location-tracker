@@ -163,13 +163,33 @@ const MapViewer: React.FC<MapViewerProps> = ({
       
       // 現在地の時間が過ぎているかチェック
       const isPast = (() => {
-        if (!userLocation.date || !userLocation.time) return false;
+        if (!userLocation.date || !userLocation.time) {
+          console.log('No date or time, treating as not past');
+          return false;
+        }
+        
+        console.log('Checking isPast for current location:', {
+          locationDate: userLocation.date,
+          locationTime: userLocation.time,
+          today: today,
+          comparison: {
+            'date < today': userLocation.date < today,
+            'date > today': userLocation.date > today,
+            'date === today': userLocation.date === today
+          }
+        });
         
         // 今日以前の日付は過去
-        if (userLocation.date < today) return true;
+        if (userLocation.date < today) {
+          console.log('Date is in the past');
+          return true;
+        }
         
         // 今日より後の日付は未来
-        if (userLocation.date > today) return false;
+        if (userLocation.date > today) {
+          console.log('Date is in the future, not past');
+          return false;
+        }
         
         // 今日で、現在時刻より2時間以上過去
         if (userLocation.date === today) {
@@ -177,7 +197,15 @@ const MapViewer: React.FC<MapViewerProps> = ({
           const [hours, minutes] = locationTime.split(':').map(Number);
           const locationMinutes = hours * 60 + minutes;
           const currentMinutes = now.getHours() * 60 + now.getMinutes();
-          return (currentMinutes - locationMinutes) > 120;
+          const timeDiff = currentMinutes - locationMinutes;
+          console.log('Same day time check:', {
+            locationTime,
+            locationMinutes,
+            currentMinutes,
+            timeDiff,
+            isPast: timeDiff > 120
+          });
+          return timeDiff > 120;
         }
         
         return false;
@@ -268,6 +296,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
     const today = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
+    console.log('Rendering scheduled cards at:', { now, today, currentTime });
+    
     return userLocations
       .filter(ul => ul.locationType === 'scheduled')
       .map((userLocation) => {
@@ -289,18 +319,46 @@ const MapViewer: React.FC<MapViewerProps> = ({
         
         // 予定地の時間が過ぎているかチェック
         const isPast = (() => {
-          if (!userLocation.date || !userLocation.time) return false;
+          if (!userLocation.date || !userLocation.time) {
+            console.log('Scheduled location: No date or time, treating as not past');
+            return false;
+          }
+          
+          console.log('Checking isPast for scheduled location:', {
+            locationDate: userLocation.date,
+            locationTime: userLocation.time,
+            endTime: userLocation.endTime,
+            today: today,
+            currentTime: currentTime,
+            comparison: {
+              'date < today': userLocation.date < today,
+              'date > today': userLocation.date > today,
+              'date === today': userLocation.date === today
+            }
+          });
           
           // 今日以前の日付は過去
-          if (userLocation.date < today) return true;
+          if (userLocation.date < today) {
+            console.log('Scheduled date is in the past');
+            return true;
+          }
           
           // 今日より後の日付は未来
-          if (userLocation.date > today) return false;
+          if (userLocation.date > today) {
+            console.log('Scheduled date is in the future, not past');
+            return false;
+          }
           
           // 今日で、終了時間が過ぎているかチェック
           if (userLocation.date === today) {
             const endTime = userLocation.endTime || userLocation.time;
-            return endTime < currentTime;
+            const timeComparison = endTime < currentTime;
+            console.log('Same day scheduled time check:', {
+              endTime,
+              currentTime,
+              isPast: timeComparison
+            });
+            return timeComparison;
           }
           
           return false;
