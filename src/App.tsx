@@ -210,14 +210,12 @@ function App() {
     }
   };
 
-  const handleUserLocationDrag = async (userId: string, point: MapPoint) => {
-    if (userId !== user?.uid) return;
-    
-    const userLocation = userLocations.find(ul => ul.userId === userId && ul.isActive);
-    if (!userLocation) return;
+  const handleUserLocationDrag = async (userLocationId: string, point: MapPoint) => {
+    const userLocation = userLocations.find(ul => ul.id === userLocationId);
+    if (!userLocation || userLocation.userId !== user?.uid) return;
 
     try {
-      await updateUserLocation(userLocation.id, {
+      await updateUserLocation(userLocationId, {
         x: point.x,
         y: point.y,
       });

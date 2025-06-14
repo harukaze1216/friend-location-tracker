@@ -21,7 +21,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   onCancel 
 }) => {
   const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
-    currentLocation?.locationType || 'current'
+    currentLocation?.locationType || 'scheduled'
   );
   const [date, setDate] = useState(currentLocation?.date || getTodayDate());
   const [time, setTime] = useState(currentLocation?.time || '');

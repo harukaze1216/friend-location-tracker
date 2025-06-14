@@ -19,7 +19,7 @@ interface MapViewerProps {
   userProfiles: { [uid: string]: UserProfile };
   currentUserId?: string;
   onMapClick: (point: MapPoint) => void;
-  onUserLocationDrag?: (userId: string, point: MapPoint) => void;
+  onUserLocationDrag?: (userLocationId: string, point: MapPoint) => void;
   onUserLocationClick?: (userLocation: UserLocation) => void;
 }
 
@@ -63,11 +63,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
     onMapClick({ x, y });
   };
 
-  const handleUserIconMouseDown = (event: React.MouseEvent, userId: string) => {
+  const handleUserIconMouseDown = (event: React.MouseEvent, userLocationId: string) => {
     event.stopPropagation();
-    if (userId !== currentUserId) return; // 自分のアイコンのみドラッグ可能
+    const userLocation = userLocations.find(ul => ul.id === userLocationId);
+    if (!userLocation || userLocation.userId !== currentUserId) return; // 自分のアイコンのみドラッグ可能
     
-    setIsDragging(userId);
+    setIsDragging(userLocationId);
     setDragStart({ x: event.clientX, y: event.clientY });
     setHasDragged(false);
   };
@@ -107,8 +108,11 @@ const MapViewer: React.FC<MapViewerProps> = ({
     const y = (event.clientY - rect.top) / scale;
     
     // 実際にドラッグした場合のみ位置更新
-    if (hasDragged && onUserLocationDrag) {
-      onUserLocationDrag(isDragging, { x, y });
+    if (hasDragged && onUserLocationDrag && isDragging) {
+      const userLocation = userLocations.find(ul => ul.id === isDragging);
+      if (userLocation) {
+        onUserLocationDrag(userLocation.id, { x, y });
+      }
     }
     
     setIsDragging(null);
@@ -153,7 +157,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     return userLocations.map((userLocation) => {
       const profile = userProfiles[userLocation.userId];
       const isCurrentUser = userLocation.userId === currentUserId;
-      const isDraggingThis = isDragging === userLocation.userId;
+      const isDraggingThis = isDragging === userLocation.id;
       const isScheduled = userLocation.locationType === 'scheduled';
       
       // 時間が過ぎているかチェック
@@ -191,7 +195,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
       return (
         <div
           key={userLocation.id}
-          id={`user-marker-${userLocation.userId}`}
+          id={`user-marker-${userLocation.id}`}
           className={`absolute rounded-full cursor-pointer transition-all duration-200 hover:scale-110 ${
             isCurrentUser ? `ring-4 ${ringColor} ring-opacity-50` : ''
           } ${isDraggingThis ? 'scale-110 z-50' : 'z-40'} ${
@@ -204,7 +208,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
             width: '40px',
             height: '40px',
           }}
-          onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.userId)}
+          onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.id)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
           title={`${profile?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
