@@ -6,8 +6,8 @@ import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Configure PDF.js worker for stable version
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+// Configure PDF.js worker - use local copy for reliability
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
 
 interface MapViewerProps {
   pdfFile: File | null;
@@ -40,7 +40,14 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    console.log('PDF loaded successfully:', numPages, 'pages');
     setNumPages(numPages);
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF Load Error:', error);
+    console.log('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+    console.log('PDF URL:', pdfFile || pdfUrl);
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -227,10 +234,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           <Document
             file={pdfFile || pdfUrl}
             onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={(error) => {
-              console.error('PDF Load Error:', error);
-              console.log('Trying to load:', pdfFile || pdfUrl);
-            }}
+            onLoadError={onDocumentLoadError}
             loading={<div className="p-4">PDF読み込み中...</div>}
             error={
               <div className="p-4 text-red-500">

@@ -143,8 +143,47 @@ rm .npmrc  # legacy-peer-deps不要に
 3. **CI/CD正常化**: .npmrc不要でnpm ciが成功
 4. **ブラウザエラー解消**: sendWithPromise API エラーの根本解決
 
+## 🔧 Worker Terminated エラーの対策
+
+### エラー症状
+```
+Uncaught (in promise) Error: Worker was terminated
+Cannot read properties of null (reading 'sendWithPromise')
+```
+
+### 根本原因
+PDF.js Workerの起動・通信に失敗した結果、PDFレンダリング処理が破綻
+
+### 対策実施 (2025-06-14)
+
+#### 1. ローカルWorkerファイル使用
+```bash
+# node_modulesから確実なworkerファイルをコピー
+cp node_modules/pdfjs-dist/build/pdf.worker.min.js public/
+```
+
+#### 2. Worker設定変更
+```javascript
+// CDN依存からローカル配信に変更
+pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+```
+
+#### 3. エラーハンドリング強化
+```javascript
+const onDocumentLoadError = (error: Error) => {
+  console.error('PDF Load Error:', error);
+  console.log('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+  console.log('PDF URL:', pdfFile || pdfUrl);
+};
+```
+
+### 期待される効果
+1. **Worker読み込み確実性向上**: CDN障害・CORS問題を回避
+2. **バージョン整合性保証**: pdfjs-distと完全一致するworkerファイル使用
+3. **診断情報充実**: エラー発生時の詳細情報取得
+
 ### 今後の対策
-1. **短期**: React 18で安定運用、追加機能開発に集中
+1. **短期**: React 18 + ローカルWorkerで安定運用
 2. **中長期**: react-pdfのReact 19対応版リリース後に再アップグレード検討
 
 ### 監視ポイント
