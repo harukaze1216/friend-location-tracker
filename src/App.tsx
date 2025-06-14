@@ -8,8 +8,10 @@ import MyLocationForm from './components/MyLocationForm';
 import ProfileEdit from './components/ProfileEdit';
 import ScheduledLocationsList from './components/ScheduledLocationsList';
 import LocationDetailModal from './components/LocationDetailModal';
-import { Location, MapPoint, UserProfile, UserLocation } from './types';
+import GroupManagement from './components/GroupManagement';
+import { Location, MapPoint, UserProfile, UserLocation, Group } from './types';
 import { addLocation, getLocations, deleteLocation } from './services/locationService';
+import { getGroup } from './services/groupService';
 import { 
   createUserProfile, 
   getUserProfile, 
@@ -29,13 +31,16 @@ function App() {
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showGroupManagement, setShowGroupManagement] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'group' | 'no-group'>('all');
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
   const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
   const [selectedLocationDetail, setSelectedLocationDetail] = useState<UserLocation | null>(null);
@@ -66,12 +71,26 @@ function App() {
         if (!profile.profileCompleted) {
           setShowProfileSetup(true);
         }
+        // グループ情報も読み込み
+        if (profile.groupId) {
+          loadCurrentGroup(profile.groupId);
+        }
       } else {
         setShowProfileSetup(true);
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
       setShowProfileSetup(true);
+    }
+  };
+
+  const loadCurrentGroup = async (groupId: string) => {
+    try {
+      const group = await getGroup(groupId);
+      setCurrentGroup(group);
+    } catch (error) {
+      console.error('Failed to load group:', error);
+      // グループが見つからない場合は無視
     }
   };
 
@@ -369,6 +388,17 @@ function App() {
   if (locationTypeFilter !== 'all') {
     filteredUserLocations = filteredUserLocations.filter(loc => loc.locationType === locationTypeFilter);
   }
+  if (groupFilter !== 'all') {
+    filteredUserLocations = filteredUserLocations.filter(loc => {
+      const userProfile = userProfiles[loc.userId];
+      if (groupFilter === 'group') {
+        return userProfile?.groupId === currentUserProfile?.groupId && currentUserProfile?.groupId;
+      } else if (groupFilter === 'no-group') {
+        return !userProfile?.groupId;
+      }
+      return true;
+    });
+  }
 
   // 認証状態の読み込み中
   if (authLoading) {
@@ -443,6 +473,11 @@ function App() {
                   {currentUserProfile.libeCityName && (
                     <p className="text-xs text-gray-600">{currentUserProfile.libeCityName}</p>
                   )}
+                  {currentGroup && (
+                    <p className="text-xs text-green-600">
+                      👥 {currentGroup.name} ({currentGroup.memberCount}人)
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -457,6 +492,12 @@ function App() {
                         {userLocations.filter(ul => ul.locationType === 'scheduled' && ul.userId === user?.uid).length}
                       </span>
                     )}
+                  </button>
+                  <button
+                    onClick={() => setShowGroupManagement(true)}
+                    className="text-xs text-purple-600 hover:text-purple-700 underline"
+                  >
+                    👥 グループ
                   </button>
                   <button
                     onClick={() => setShowProfileEdit(true)}
@@ -503,11 +544,24 @@ function App() {
                 onClick={() => {
                   setLocationTypeFilter('current');
                   setSelectedUser('');
+                  setGroupFilter('all');
                 }}
                 className="px-3 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-full text-xs hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
               >
                 📍 現在地一覧
               </button>
+              {currentGroup && (
+                <button
+                  onClick={() => {
+                    setGroupFilter('group');
+                    setLocationTypeFilter('all');
+                    setSelectedUser('');
+                  }}
+                  className="px-3 py-1 bg-gradient-to-r from-purple-400 to-purple-500 text-white rounded-full text-xs hover:from-purple-500 hover:to-purple-600 transition-all shadow-sm"
+                >
+                  👥 {currentGroup.name}
+                </button>
+              )}
               <button
                 onClick={() => {
                   const today = new Date().toISOString().split('T')[0];
@@ -521,6 +575,7 @@ function App() {
               <button
                 onClick={() => {
                   setLocationTypeFilter('all');
+                  setGroupFilter('all');
                   setSelectedDate('');
                   setSelectedTime('');
                   setSelectedUser('');
@@ -534,7 +589,7 @@ function App() {
             {/* 詳細フィルター - 折りたたみ可能 */}
             {!isFilterCollapsed && (
               <div className="space-y-3 border-t pt-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
                     <select
@@ -545,6 +600,20 @@ function App() {
                       <option value="all">すべて表示</option>
                       <option value="current">📍 現在地のみ</option>
                       <option value="scheduled">📅 予定地のみ</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">グループ</label>
+                    <select
+                      value={groupFilter}
+                      onChange={(e) => setGroupFilter(e.target.value as 'all' | 'group' | 'no-group')}
+                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                    >
+                      <option value="all">すべて表示</option>
+                      {currentGroup && (
+                        <option value="group">👥 {currentGroup.name}のみ</option>
+                      )}
+                      <option value="no-group">グループ未参加のみ</option>
                     </select>
                   </div>
                   <div>
@@ -681,6 +750,21 @@ function App() {
             onEdit={() => handleLocationEdit(selectedLocationDetail)}
             onDelete={() => handleLocationDetailDelete(selectedLocationDetail)}
             onClose={() => setSelectedLocationDetail(null)}
+          />
+        )}
+
+        {/* グループ管理ダイアログ */}
+        {showGroupManagement && currentUserProfile && (
+          <GroupManagement
+            currentUser={currentUserProfile}
+            currentGroup={currentGroup}
+            onGroupChange={(group) => {
+              setCurrentGroup(group);
+              // プロフィール情報も更新
+              setCurrentUserProfile(prev => prev ? { ...prev, groupId: group?.id } : null);
+              loadUserLocations(); // グループ変更後にユーザー位置を再読み込み
+            }}
+            onClose={() => setShowGroupManagement(false)}
           />
         )}
 

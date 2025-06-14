@@ -4,6 +4,17 @@ export interface UserProfile {
   avatarUrl?: string;
   libeCityName?: string;
   profileCompleted: boolean;
+  groupId?: string; // 参加中のグループID
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  code: string; // 6桁の参加コード
+  createdBy: string; // 作成者のUID
+  memberCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
