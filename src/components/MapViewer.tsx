@@ -90,15 +90,21 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    
+    // スクロールを考慮した位置計算
+    const x = (event.clientX - rect.left + scrollLeft) / scale;
+    const y = (event.clientY - rect.top + scrollTop) / scale;
     
     // ドラッグ中の位置を更新（DOM操作で一時的に表示）
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
+      // スクロール位置に関係なく、絶対位置で設定
       marker.style.left = `${x * scale}px`;
       marker.style.top = `${y * scale}px`;
       marker.style.transform = 'translate(-50%, -50%)';
+      marker.style.position = 'absolute';
     }
   };
 
@@ -120,15 +126,21 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) / scale;
-    const y = (touch.clientY - rect.top) / scale;
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    
+    // スクロールを考慮した位置計算
+    const x = (touch.clientX - rect.left + scrollLeft) / scale;
+    const y = (touch.clientY - rect.top + scrollTop) / scale;
     
     // ドラッグ中の位置を更新
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
+      // スクロール位置に関係なく、絶対位置で設定
       marker.style.left = `${x * scale}px`;
       marker.style.top = `${y * scale}px`;
       marker.style.transform = 'translate(-50%, -50%)';
+      marker.style.position = 'absolute';
     }
   };
 
@@ -136,8 +148,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!isDragging || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    const x = (event.clientX - rect.left + scrollLeft) / scale;
+    const y = (event.clientY - rect.top + scrollTop) / scale;
     
     // 実際にドラッグした場合のみ位置更新
     if (hasDragged && onUserLocationDrag && isDragging) {
@@ -163,8 +177,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!touch) return;
     
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) / scale;
-    const y = (touch.clientY - rect.top) / scale;
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    const x = (touch.clientX - rect.left + scrollLeft) / scale;
+    const y = (touch.clientY - rect.top + scrollTop) / scale;
     
     // 実際にドラッグした場合のみ位置更新
     if (hasDragged && onUserLocationDrag && isDragging) {
@@ -472,12 +488,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
           // マーカーをドラッグ中でない場合のみマップクリックを処理
           if (!isDragging) {
             const touch = e.touches[0];
-            if (touch) {
-              const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-              });
-              e.currentTarget.dispatchEvent(mouseEvent);
+            if (touch && imageRef.current) {
+              // 画像基準で位置を計算
+              const rect = imageRef.current.getBoundingClientRect();
+              const x = (touch.clientX - rect.left) / scale;
+              const y = (touch.clientY - rect.top) / scale;
+              onMapClick({ x, y });
             }
           }
         }}

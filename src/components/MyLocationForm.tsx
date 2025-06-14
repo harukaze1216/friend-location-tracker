@@ -58,6 +58,18 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     }
   }, [currentLocation, festivalDates]);
 
+  // locationTypeが変更された時に時刻を自動設定
+  useEffect(() => {
+    if (locationType === 'current') {
+      // 現在地の場合は現在時刻を自動設定
+      setTime(getCurrentTime());
+      setDate(getTodayDate());
+    } else if (!currentLocation) {
+      // 新規で予定地の場合は時刻をクリア
+      setTime('');
+    }
+  }, [locationType, currentLocation]);
+
   // 現在の日付を取得（デフォルト値用）
   function getTodayDate() {
     const today = new Date();
@@ -162,13 +174,16 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {locationType === 'current' ? '現在時間' : '開始時間'} *
               </label>
+              {locationType === 'current' && (
+                <p className="text-xs text-blue-600 mb-2">現在地を選択すると自動で現在時刻が設定されます</p>
+              )}
               <div className="flex gap-2">
                 <input
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   min={getMinTime(date) || undefined}
-                  className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   required
                 />
                 <button
