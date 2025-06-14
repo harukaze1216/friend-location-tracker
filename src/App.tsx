@@ -19,8 +19,7 @@ import './App.css';
 
 function App() {
   const { user } = useAuth();
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [pdfUrl] = useState<string>('');
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
@@ -34,7 +33,6 @@ function App() {
 
   useEffect(() => {
     loadLocations();
-    loadDefaultPdf();
   }, []);
 
   useEffect(() => {
@@ -44,11 +42,6 @@ function App() {
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadDefaultPdf = () => {
-    const defaultPdfUrl = `${process.env.PUBLIC_URL}/location_map.pdf`;
-    console.log('PDF URL:', defaultPdfUrl);
-    setPdfUrl(defaultPdfUrl);
-  };
 
   const loadUserProfile = async () => {
     if (!user) return;
@@ -106,15 +99,6 @@ function App() {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setPdfFile(file);
-      setPdfUrl('');
-    } else {
-      alert('PDFファイルを選択してください');
-    }
-  };
 
   const handleMapClick = (point: MapPoint) => {
     if (!currentUserProfile?.profileCompleted) return;
@@ -295,70 +279,105 @@ function App() {
         </div>
 
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex items-center gap-4 mb-4">
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {currentUserProfile.avatarUrl ? (
                   <img 
                     src={currentUserProfile.avatarUrl} 
                     alt={currentUserProfile.displayName}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
                     {currentUserProfile.displayName.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <h2 className="text-lg font-bold">{currentUserProfile.displayName}</h2>
+                  <h2 className="text-md font-bold">{currentUserProfile.displayName}</h2>
                   {currentUserProfile.libeCityName && (
-                    <p className="text-sm text-gray-600">{currentUserProfile.libeCityName}</p>
+                    <p className="text-xs text-gray-600">{currentUserProfile.libeCityName}</p>
                   )}
                 </div>
               </div>
-              <div className="ml-auto">
-                <p className="text-sm text-blue-600">地図をクリックして位置を設定・更新できます</p>
+              <div className="text-right">
+                <p className="text-xs text-blue-600">地図をクリックして位置を設定・更新</p>
               </div>
-            </div>
-            
-            <div className="border-t pt-4">
-              <h3 className="text-md font-semibold mb-2">地図設定</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                デフォルトの地図が読み込まれています。別の地図を使用する場合はアップロードしてください。
-              </p>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="w-full p-2 border border-gray-300 rounded"
-              />
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">地図</h2>
-            {pdfFile || pdfUrl ? (
-              <MapViewer
-                pdfFile={pdfFile}
-                pdfUrl={pdfUrl}
-                locations={filteredLocations}
-                userLocations={filteredUserLocations}
-                userProfiles={userProfiles}
-                currentUserId={user?.uid}
-                onMapClick={handleMapClick}
-                onUserLocationDrag={handleUserLocationDrag}
-                onUserLocationClick={handleUserLocationClick}
-              />
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                地図を読み込み中...
+        {/* フィルタ機能 */}
+        {currentUserProfile?.profileCompleted && (
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <h3 className="text-md font-semibold mb-3">フィルタ</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">時間で絞り込み</label>
+                <select
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                >
+                  <option value="">すべての時間</option>
+                  {Array.from(new Set([...locations.map(l => l.time), ...userLocations.map(ul => ul.time)])).sort().map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                >
+                  <option value="">すべてのユーザー</option>
+                  {Object.values(userProfiles).map(profile => (
+                    <option key={profile.uid} value={profile.uid}>{profile.displayName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSelectedTime('');
+                    setSelectedUser('');
+                  }}
+                  className="w-full px-3 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                >
+                  フィルタをクリア
+                </button>
+              </div>
+            </div>
           </div>
+        )}
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+        {/* 地図表示 - 大きく表示 */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <h2 className="text-lg font-bold mb-4">リベ大フェス会場マップ</h2>
+          {pdfUrl || process.env.PUBLIC_URL ? (
+            <MapViewer
+              pdfFile={null}
+              pdfUrl={`${process.env.PUBLIC_URL}/location_map.pdf`}
+              locations={filteredLocations}
+              userLocations={filteredUserLocations}
+              userProfiles={userProfiles}
+              currentUserId={user?.uid}
+              onMapClick={handleMapClick}
+              onUserLocationDrag={handleUserLocationDrag}
+              onUserLocationClick={handleUserLocationClick}
+            />
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              地図を読み込み中...
+            </div>
+          )}
+        </div>
+
+        {/* 位置情報リスト - コンパクト表示 */}
+        {currentUserProfile?.profileCompleted && (
+          <div className="bg-white rounded-lg shadow-md p-4">
             <LocationList
               locations={locations}
               selectedTime={selectedTime}
@@ -368,7 +387,7 @@ function App() {
               onDelete={handleLocationDelete}
             />
           </div>
-        </div>
+        )}
 
         {loading && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">

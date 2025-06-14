@@ -226,7 +226,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
       <div 
         ref={containerRef}
-        className="relative border border-gray-300 overflow-auto max-h-96"
+        className="relative border border-gray-300 overflow-auto max-h-[600px] md:max-h-[700px] lg:max-h-[800px]"
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
