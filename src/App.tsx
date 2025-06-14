@@ -72,16 +72,20 @@ function App() {
       setUserLocations(allUserLocations);
       
       // ユーザープロフィールを個別に取得
-      const profiles: { [uid: string]: UserProfile } = {};
-      for (const userLocation of allUserLocations) {
-        if (!profiles[userLocation.userId]) {
+      const profiles: { [uid: string]: UserProfile } = { ...userProfiles }; // 既存のプロフィールを保持
+      const uniqueUserIds = Array.from(new Set(allUserLocations.map(ul => ul.userId)));
+      
+      for (const userId of uniqueUserIds) {
+        if (!profiles[userId]) {
           try {
-            const profile = await getUserProfile(userLocation.userId);
+            const profile = await getUserProfile(userId);
             if (profile) {
-              profiles[userLocation.userId] = profile;
+              profiles[userId] = profile;
+            } else {
+              console.warn('Profile not found for user:', userId);
             }
           } catch (error) {
-            console.error(`Failed to load profile for user ${userLocation.userId}:`, error);
+            console.error(`Failed to load profile for user ${userId}:`, error);
           }
         }
       }

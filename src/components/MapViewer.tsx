@@ -167,24 +167,41 @@ const MapViewer: React.FC<MapViewerProps> = ({
         // 今日以前の日付は過去
         if (userLocation.date < today) return true;
         
-        // 今日で、現在時刻より前の時間は過去
+        // 今日より後の日付は未来
+        if (userLocation.date > today) return false;
+        
+        // 今日で、現在時刻と比較
         if (userLocation.date === today) {
           if (isScheduled && userLocation.endTime) {
             // 予定地の場合は終了時間で判定
             return userLocation.endTime < currentTime;
           } else {
-            // 現在地の場合は開始時間で判定
-            return userLocation.time < currentTime;
+            // 現在地の場合は開始時間から2時間後で判定
+            const locationTime = userLocation.time;
+            const [hours, minutes] = locationTime.split(':').map(Number);
+            const locationMinutes = hours * 60 + minutes;
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            // 現在地は2時間後に過去扱い
+            return (currentMinutes - locationMinutes) > 120;
           }
         }
         
         return false;
       })();
       
-      // プロフィールが見つからない場合はスキップ
+      // プロフィールが見つからない場合はデフォルトプロフィールを作成
       if (!profile) {
-        console.warn('Profile not found for user:', userLocation.userId, 'skipping marker');
-        return null;
+        console.warn('Profile not found for user:', userLocation.userId, 'using default profile');
+        // デフォルトプロフィールを作成
+        const defaultProfile: UserProfile = {
+          uid: userLocation.userId,
+          displayName: 'Unknown User',
+          profileCompleted: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        // 一時的にプロフィールに追加（次回のため）
+        userProfiles[userLocation.userId] = defaultProfile;
       }
       
       // 位置タイプに応じた色とアイコン
@@ -209,12 +226,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
           }}
           onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.id)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
-          title={`${profile?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
+          title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
-          {profile?.avatarUrl ? (
+          {(profile || userProfiles[userLocation.userId])?.avatarUrl ? (
             <img
-              src={profile.avatarUrl}
-              alt={profile.displayName}
+              src={(profile || userProfiles[userLocation.userId])?.avatarUrl}
+              alt={(profile || userProfiles[userLocation.userId])?.displayName || 'User'}
               className={`w-full h-full rounded-full object-cover border-2 shadow-lg ${borderColor}`}
               draggable={false}
             />
@@ -224,7 +241,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
                 ? 'bg-gradient-to-br from-orange-400 to-red-500' 
                 : 'bg-gradient-to-br from-blue-400 to-purple-500'
             } flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg`}>
-              {profile?.displayName?.charAt(0) || '?'}
+              {((profile || userProfiles[userLocation.userId])?.displayName || 'U').charAt(0)}
             </div>
           )}
           
