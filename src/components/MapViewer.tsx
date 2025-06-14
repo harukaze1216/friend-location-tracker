@@ -309,49 +309,45 @@ const MapViewer: React.FC<MapViewerProps> = ({
         return (
           <div
             key={userLocation.id}
-            className={`absolute bg-white rounded-lg shadow-lg border-2 ${
+            className={`absolute bg-white rounded-lg shadow-md border ${
               isCurrentUser ? 'border-orange-400' : 'border-gray-200'
-            } p-2 cursor-pointer transition-all duration-200 hover:scale-105 ${
+            } p-1.5 cursor-pointer transition-all duration-200 hover:scale-105 ${
               isPast ? 'opacity-50' : 'opacity-100'
             }`}
             style={{
               left: `${userLocation.x * scale + 20}px`,
-              top: `${userLocation.y * scale - 10}px`,
-              width: '140px',
-              fontSize: '12px',
+              top: `${userLocation.y * scale - 5}px`,
+              width: '80px',
+              fontSize: '10px',
               zIndex: 30
             }}
             onClick={() => onUserLocationClick && onUserLocationClick(userLocation)}
             title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
           >
-            <div className="flex items-center gap-2 mb-1">
+            {/* アバターと時間のみ */}
+            <div className="flex items-center gap-1 mb-1">
               {(profile || userProfiles[userLocation.userId])?.avatarUrl ? (
                 <img
                   src={(profile || userProfiles[userLocation.userId])?.avatarUrl}
                   alt={(profile || userProfiles[userLocation.userId])?.displayName || 'User'}
-                  className="w-6 h-6 rounded-full object-cover border border-gray-300"
+                  className="w-5 h-5 rounded-full object-cover border border-gray-300"
                   draggable={false}
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xs border border-gray-300">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xs border border-gray-300">
                   {((profile || userProfiles[userLocation.userId])?.displayName || 'U').charAt(0)}
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-xs truncate text-gray-800">
-                  {((profile || userProfiles[userLocation.userId])?.displayName || 'Unknown').substring(0, 10)}
-                </div>
-              </div>
               <div className="text-orange-500 text-xs">
                 📅
               </div>
             </div>
-            <div className="text-xs text-gray-600 mb-1">
-              {userLocation.time}{userLocation.endTime ? ` - ${userLocation.endTime}` : ''}
+            <div className="text-xs text-gray-700 font-medium leading-tight">
+              {userLocation.time}
             </div>
-            {userLocation.comment && (
-              <div className="text-xs text-gray-500 truncate">
-                {userLocation.comment.substring(0, 20)}{userLocation.comment.length > 20 ? '...' : ''}
+            {userLocation.endTime && (
+              <div className="text-xs text-gray-500 leading-tight">
+                ~{userLocation.endTime}
               </div>
             )}
           </div>

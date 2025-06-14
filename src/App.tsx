@@ -112,12 +112,10 @@ function App() {
   const handleMapClick = (point: MapPoint) => {
     if (!currentUserProfile?.profileCompleted) return;
     
-    // 自分の現在位置があるかチェック
-    const currentUserLocation = userLocations.find(ul => ul.userId === user?.uid && ul.isActive);
-    
+    // 新しい位置登録のため、常にcurrentLocationはnullにする（編集モードではなく新規登録）
     setMyLocationFormData({
       position: point,
-      currentLocation: currentUserLocation
+      currentLocation: undefined
     });
   };
 
