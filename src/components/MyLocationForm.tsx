@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserLocation } from '../types';
+import { getSettings, updateSetting } from '../utils/settings';
 
 interface MyLocationFormProps {
   position: { x: number; y: number };
@@ -22,7 +23,10 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   onDelete, 
   onCancel 
 }) => {
-  const [locationType, setLocationType] = useState<'current' | 'scheduled'>('scheduled');
+  const [settings, setSettings] = useState(getSettings());
+  const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
+    currentLocation?.locationType || settings.defaultLocationType
+  );
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -48,15 +52,15 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
       setComment(currentLocation.comment || '');
       setLocation(currentLocation.location || '');
     } else {
-      // 新規作成時はリセット
-      setLocationType('scheduled');
+      // 新規作成時は設定に基づいた初期値
+      setLocationType(settings.defaultLocationType);
       setDate(festivalDates[0].value); // フェスの初日をデフォルトに
       setTime('');
       setEndTime('');
       setComment('');
       setLocation('');
     }
-  }, [currentLocation, festivalDates]);
+  }, [currentLocation, festivalDates, settings.defaultLocationType]);
 
   // locationTypeが変更された時に時刻を自動設定
   useEffect(() => {
@@ -121,9 +125,23 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {/* 位置タイプ選択 */}
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                位置の種類 *
-              </label>
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                  位置の種類 *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newDefaultType = settings.defaultLocationType === 'current' ? 'scheduled' : 'current';
+                    const newSettings = updateSetting('defaultLocationType', newDefaultType);
+                    setSettings(newSettings);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline"
+                  title={`デフォルトを「${settings.defaultLocationType === 'current' ? '現在地' : '予定地'}」から切り替え`}
+                >
+                  📝 デフォルト変更
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -135,6 +153,9 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   }`}
                 >
                   📍 現在地
+                  {settings.defaultLocationType === 'current' && (
+                    <span className="ml-1 text-xs">★</span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -146,8 +167,14 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   }`}
                 >
                   📅 予定地
+                  {settings.defaultLocationType === 'scheduled' && (
+                    <span className="ml-1 text-xs">★</span>
+                  )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                ★がデフォルト設定（新規登録時の初期値）
+              </p>
             </div>
 
             {/* 日付選択（フェス期間） */}

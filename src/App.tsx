@@ -226,21 +226,6 @@ function App() {
     }
   };
 
-  const handleUserLocationDrag = async (userLocationId: string, point: MapPoint) => {
-    const userLocation = userLocations.find(ul => ul.id === userLocationId);
-    if (!userLocation || userLocation.userId !== user?.uid) return;
-
-    try {
-      await updateUserLocation(userLocationId, {
-        x: point.x,
-        y: point.y,
-      });
-      await loadUserLocations();
-    } catch (error) {
-      console.error('Failed to update user location:', error);
-      alert('位置の更新に失敗しました');
-    }
-  };
 
   const handleUserLocationClick = (userLocation: UserLocation) => {
     // 現在は詳細モーダルで表示
@@ -590,7 +575,6 @@ function App() {
             userProfiles={userProfiles}
             currentUserId={user?.uid}
             onMapClick={handleMapClick}
-            onUserLocationDrag={handleUserLocationDrag}
             onUserLocationClick={handleUserLocationClick}
           />
         </div>

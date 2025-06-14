@@ -9,7 +9,6 @@ interface MapViewerProps {
   userProfiles: { [uid: string]: UserProfile };
   currentUserId?: string;
   onMapClick: (point: MapPoint) => void;
-  onUserLocationDrag?: (userLocationId: string, point: MapPoint) => void;
   onUserLocationClick?: (userLocation: UserLocation) => void;
 }
 
@@ -20,7 +19,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   userProfiles,
   currentUserId,
   onMapClick,
-  onUserLocationDrag,
   onUserLocationClick
 }) => {
   // モバイルデバイスを検出
@@ -29,9 +27,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
   
   const [scale, setScale] = useState<number>(isMobile() ? 0.7 : 1.0);
-  const [isDragging, setIsDragging] = useState<string | null>(null);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [hasDragged, setHasDragged] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +48,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     // PC版では通常のクリックで位置登録を許可
-    if (!containerRef.current || !imageRef.current || isDragging || hasDragged) return;
+    if (!containerRef.current || !imageRef.current) return;
     
     const rect = imageRef.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
@@ -62,146 +57,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
     onMapClick({ x, y });
   };
 
-  const handleUserIconMouseDown = (event: React.MouseEvent, userLocationId: string) => {
-    event.stopPropagation();
-    
-    const userLocation = userLocations.find(ul => ul.id === userLocationId);
-    if (!userLocation || userLocation.userId !== currentUserId) return; // 自分のアイコンのみドラッグ可能
-    
-    setIsDragging(userLocationId);
-    setDragStart({ x: event.clientX, y: event.clientY });
-    setHasDragged(false);
-  };
-
-  const handleUserIconTouchStart = (event: React.TouchEvent, userLocationId: string) => {
-    event.stopPropagation();
-    event.preventDefault(); // タッチ時のスクロールを防ぐ
-    
-    const userLocation = userLocations.find(ul => ul.id === userLocationId);
-    if (!userLocation || userLocation.userId !== currentUserId) return;
-    
-    const touch = event.touches[0];
-    setIsDragging(userLocationId);
-    setDragStart({ x: touch.clientX, y: touch.clientY });
-    setHasDragged(false);
-  };
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
-    
-    event.preventDefault();
-    
-    // ドラッグを検出
-    const threshold = 3;
-    const deltaX = Math.abs(event.clientX - dragStart.x);
-    const deltaY = Math.abs(event.clientY - dragStart.y);
-    
-    if (deltaX > threshold || deltaY > threshold) {
-      setHasDragged(true);
-    }
-    
-    // 画像要素基準で位置を計算（スクロール位置に関係なく正確）
-    const imageRect = imageRef.current.getBoundingClientRect();
-    const x = (event.clientX - imageRect.left) / scale;
-    const y = (event.clientY - imageRect.top) / scale;
-    
-    // ドラッグ中の位置を更新（カーソル位置と完全に同期）
-    const marker = document.getElementById(`user-marker-${isDragging}`);
-    if (marker) {
-      marker.style.left = `${x * scale}px`;
-      marker.style.top = `${y * scale}px`;
-      marker.style.transform = 'translate(-50%, -50%)';
-    }
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    // マーカードラッグ中の場合のみ処理
-    if (!isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
-    
-    event.preventDefault(); // スクロールを防ぐ
-    
-    const touch = event.touches[0];
-    if (!touch) return;
-    
-    // ドラッグを検出
-    const threshold = 3;
-    const deltaX = Math.abs(touch.clientX - dragStart.x);
-    const deltaY = Math.abs(touch.clientY - dragStart.y);
-    
-    if (deltaX > threshold || deltaY > threshold) {
-      setHasDragged(true);
-    }
-    
-    // 画像要素基準で位置を計算（スクロール位置に関係なく正確）
-    const imageRect = imageRef.current.getBoundingClientRect();
-    const x = (touch.clientX - imageRect.left) / scale;
-    const y = (touch.clientY - imageRect.top) / scale;
-    
-    // ドラッグ中の位置を更新（指の位置と完全に同期）
-    const marker = document.getElementById(`user-marker-${isDragging}`);
-    if (marker) {
-      marker.style.left = `${x * scale}px`;
-      marker.style.top = `${y * scale}px`;
-      marker.style.transform = 'translate(-50%, -50%)';
-    }
-  };
-
-  const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !containerRef.current || !imageRef.current) return;
-    
-    // 画像要素基準で位置を計算
-    const imageRect = imageRef.current.getBoundingClientRect();
-    const x = (event.clientX - imageRect.left) / scale;
-    const y = (event.clientY - imageRect.top) / scale;
-    
-    // 実際にドラッグした場合のみ位置更新
-    if (hasDragged && onUserLocationDrag && isDragging) {
-      const userLocation = userLocations.find(ul => ul.id === isDragging);
-      if (userLocation) {
-        onUserLocationDrag(userLocation.id, { x, y });
-      }
-    }
-    
-    setIsDragging(null);
-    setDragStart(null);
-    
-    // hasDraggedを少し遅延させてリセット（クリックイベントの後に実行）
-    setTimeout(() => setHasDragged(false), 100);
-  };
-
-  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    // マーカードラッグ中だった場合の処理
-    if (isDragging && containerRef.current && imageRef.current) {
-      event.preventDefault();
-      
-      const touch = event.changedTouches[0];
-      if (!touch) return;
-      
-      // 画像要素基準で位置を計算
-      const imageRect = imageRef.current.getBoundingClientRect();
-      const x = (touch.clientX - imageRect.left) / scale;
-      const y = (touch.clientY - imageRect.top) / scale;
-      
-      // 実際にドラッグした場合のみ位置更新
-      if (hasDragged && onUserLocationDrag && isDragging) {
-        const userLocation = userLocations.find(ul => ul.id === isDragging);
-        if (userLocation) {
-          onUserLocationDrag(userLocation.id, { x, y });
-        }
-      }
-      
-      setIsDragging(null);
-      setDragStart(null);
-      
-      // hasDraggedを少し遅延させてリセット
-      setTimeout(() => setHasDragged(false), 100);
-    }
-  };
-
   const handleUserIconClick = (event: React.MouseEvent, userLocation: UserLocation) => {
     event.stopPropagation();
-    // ドラッグ直後の場合はクリックイベントを無視
-    if (hasDragged) return;
     
     if (onUserLocationClick) {
       onUserLocationClick(userLocation);
@@ -234,7 +91,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
       .map((userLocation) => {
       const profile = userProfiles[userLocation.userId];
       const isCurrentUser = userLocation.userId === currentUserId;
-      const isDraggingThis = isDragging === userLocation.id;
       const isScheduled = false; // 現在地のみ
       
       // 現在地の時間が過ぎているかチェック（修正版）
@@ -291,9 +147,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
         <div
           key={userLocation.id}
           id={`user-marker-${userLocation.id}`}
-          className={`absolute rounded-full cursor-pointer transition-all duration-200 hover:scale-110 ${
+          className={`absolute rounded-full cursor-pointer transition-all duration-200 hover:scale-110 z-40 ${
             isCurrentUser ? `ring-4 ${ringColor} ring-opacity-50` : ''
-          } ${isDraggingThis ? 'scale-110 z-50' : 'z-40'} ${
+          } ${
             isPast ? 'opacity-50' : 'opacity-100'
           }`}
           style={{
@@ -303,8 +159,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
             width: '40px',
             height: '40px',
           }}
-          onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.id)}
-          onTouchStart={(e) => handleUserIconTouchStart(e, userLocation.id)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
           title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.location ? ' @ ' + userLocation.location : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
@@ -338,12 +192,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
             {isScheduled && userLocation.endTime && ` - ${userLocation.endTime}`}
           </div>
           
-          {/* 現在のユーザーを示すドラッグヒント */}
-          {isCurrentUser && !isDraggingThis && (
-            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-              ドラッグで移動
-            </div>
-          )}
         </div>
       );
     }).filter(Boolean);
@@ -459,24 +307,26 @@ const MapViewer: React.FC<MapViewerProps> = ({
   return (
     <div className="w-full">
       {/* 拡大縮小コントロール */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          <span>💡 <strong>操作方法:</strong> PC=クリック、スマホ=長押しで位置登録。マーカーはドラッグで移動可能。</span>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="text-xs sm:text-sm text-gray-600 flex-1 min-w-0">
+          <span>💡 <strong>操作方法:</strong> PC=クリック、スマホ=長押しで位置登録。マーカークリックで詳細表示。</span>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
-            className="px-2 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all text-xs"
+            className="w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all text-sm font-bold flex items-center justify-center"
+            title="縮小"
           >
-            縮小
+            −
           </button>
-          <span className="text-xs text-gray-500">{Math.round(scale * 100)}%</span>
+          <span className="text-xs text-gray-500 min-w-[3rem] text-center">{Math.round(scale * 100)}%</span>
           <button
             onClick={() => setScale(s => Math.min(2.0, s + 0.1))}
-            className="px-2 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all text-xs"
+            className="w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all text-sm font-bold flex items-center justify-center"
+            title="拡大"
           >
-            拡大
+            ＋
           </button>
         </div>
       </div>
@@ -485,11 +335,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
         ref={containerRef}
         className="relative border border-gray-300 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] overflow-auto touch-manipulation"
         onClick={handleMapClick}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
         onTouchStart={(e) => {
           // スマホでは長押しで位置登録を許可
-          if (e.touches.length === 1 && !isDragging) {
+          if (e.touches.length === 1) {
             const touch = e.touches[0];
             if (touch && imageRef.current) {
               const initialX = touch.clientX;
@@ -512,9 +360,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
             clearTimeout(longPressTimeoutRef.current);
             longPressTimeoutRef.current = null;
           }
-          
-          // 通常のタッチムーブ処理
-          handleTouchMove(e);
         }}
         onTouchEnd={(e) => {
           // 長押しタイマーをクリア
@@ -522,12 +367,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
             clearTimeout(longPressTimeoutRef.current);
             longPressTimeoutRef.current = null;
           }
-          
-          // 通常のタッチエンド処理
-          handleTouchEnd(e);
         }}
         style={{ 
-          cursor: isDragging ? 'grabbing' : 'crosshair',
+          cursor: 'crosshair',
           WebkitUserSelect: 'none',
           WebkitTouchCallout: 'none',
           touchAction: 'manipulation'
