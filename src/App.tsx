@@ -78,26 +78,44 @@ function App() {
   const loadUserLocations = async () => {
     try {
       const allUserLocations = await getActiveUserLocations();
-      setUserLocations(allUserLocations);
+      
+      // 7日以上古い位置情報をフィルタリング
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const recentLocations = allUserLocations.filter(location => {
+        if (!location.date) return false;
+        const locationDate = new Date(location.date + 'T00:00:00');
+        return locationDate >= sevenDaysAgo;
+      });
+      
+      setUserLocations(recentLocations);
       
       // ユーザープロフィールを個別に取得
       const profiles: { [uid: string]: UserProfile } = { ...userProfiles }; // 既存のプロフィールを保持
-      const uniqueUserIds = Array.from(new Set(allUserLocations.map(ul => ul.userId)));
+      const uniqueUserIds = Array.from(new Set(recentLocations.map(ul => ul.userId)));
       
-      for (const userId of uniqueUserIds) {
-        if (!profiles[userId]) {
+      // プロフィール取得を並列化してパフォーマンス改善
+      const profilePromises = uniqueUserIds
+        .filter(userId => !profiles[userId])
+        .map(async (userId) => {
           try {
             const profile = await getUserProfile(userId);
             if (profile) {
-              profiles[userId] = profile;
-            } else {
-              console.warn('Profile not found for user:', userId);
+              return { userId, profile };
             }
           } catch (error) {
-            console.error(`Failed to load profile for user ${userId}:`, error);
+            // エラーを静かに処理（削除されたユーザーなど）
+            console.debug(`Profile not found for user ${userId}`);
           }
+          return null;
+        });
+      
+      const profileResults = await Promise.all(profilePromises);
+      profileResults.forEach(result => {
+        if (result) {
+          profiles[result.userId] = result.profile;
         }
-      }
+      });
       setUserProfiles(profiles);
     } catch (error) {
       console.error('Failed to load user locations:', error);

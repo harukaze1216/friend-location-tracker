@@ -124,19 +124,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
         return false;
       })();
       
-      // プロフィールが見つからない場合はデフォルトプロフィールを作成
+      // プロフィールが見つからない場合はスキップ
       if (!profile) {
-        console.warn('Profile not found for user:', userLocation.userId, 'using default profile');
-        // デフォルトプロフィールを作成
-        const defaultProfile: UserProfile = {
-          uid: userLocation.userId,
-          displayName: 'Unknown User',
-          profileCompleted: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        // 一時的にプロフィールに追加（次回のため）
-        userProfiles[userLocation.userId] = defaultProfile;
+        return null; // このユーザーの位置情報は表示しない
       }
       
       // 位置タイプに応じた色とアイコン
@@ -209,17 +199,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
         const profile = userProfiles[userLocation.userId];
         const isCurrentUser = userLocation.userId === currentUserId;
         
-        // プロフィールが見つからない場合はデフォルトプロフィールを作成
+        // プロフィールが見つからない場合はスキップ
         if (!profile) {
-          console.warn('Profile not found for user:', userLocation.userId, 'using default profile');
-          const defaultProfile: UserProfile = {
-            uid: userLocation.userId,
-            displayName: 'Unknown User',
-            profileCompleted: false,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          userProfiles[userLocation.userId] = defaultProfile;
+          return null; // このユーザーの位置情報は表示しない
         }
         
         // 予定地の時間が過ぎているかチェック（修正版）
