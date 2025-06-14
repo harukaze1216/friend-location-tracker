@@ -6,9 +6,9 @@ import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Configure PDF.js worker - use local copy for reliability
+// Configure PDF.js worker - use CDN for better reliability
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 }
 
 interface MapViewerProps {
@@ -181,11 +181,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
         return false;
       })();
       
-      // デバッグログ
+      // プロフィールが見つからない場合はスキップ
       if (!profile) {
-        console.warn('Profile not found for user:', userLocation.userId);
-      } else if (!profile.avatarUrl) {
-        console.log('No avatar URL for user:', profile.displayName);
+        console.warn('Profile not found for user:', userLocation.userId, 'skipping marker');
+        return null;
       }
       
       // 位置タイプに応じた色とアイコン
@@ -250,7 +249,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           )}
         </div>
       );
-    });
+    }).filter(Boolean);
   };
 
   return (
@@ -331,6 +330,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
               cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
               cMapPacked: true,
               standardFontDataUrl: `https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/`,
+              disableWorker: false,
+              isEvalSupported: false,
             }}
           >
             <Page 
