@@ -23,7 +23,7 @@ import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const mapImageUrl = `${process.env.PUBLIC_URL}/libefes_map.png`;
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
@@ -43,8 +43,10 @@ function App() {
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
   useEffect(() => {
-    loadLocations();
-  }, []);
+    if (user) {
+      loadLocations();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -350,6 +352,19 @@ function App() {
     filteredUserLocations = filteredUserLocations.filter(loc => loc.locationType === locationTypeFilter);
   }
 
+  // 認証状態の読み込み中
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
+        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md text-center max-w-sm sm:max-w-md mx-auto">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">認証状態を確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 未ログイン状態
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
