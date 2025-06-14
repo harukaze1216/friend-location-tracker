@@ -63,6 +63,18 @@ const MapViewer: React.FC<MapViewerProps> = ({
     setHasDragged(false);
   };
 
+  const handleUserIconTouchStart = (event: React.TouchEvent, userLocationId: string) => {
+    event.stopPropagation();
+    event.preventDefault(); // タッチ時のスクロールを防ぐ
+    const userLocation = userLocations.find(ul => ul.id === userLocationId);
+    if (!userLocation || userLocation.userId !== currentUserId) return;
+    
+    const touch = event.touches[0];
+    setIsDragging(userLocationId);
+    setDragStart({ x: touch.clientX, y: touch.clientY });
+    setHasDragged(false);
+  };
+
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !dragStart || !containerRef.current) return;
     
@@ -90,6 +102,36 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
   };
 
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging || !dragStart || !containerRef.current) return;
+    
+    event.preventDefault(); // スクロールを防ぐ
+    
+    const touch = event.touches[0];
+    if (!touch) return;
+    
+    // ドラッグを検出
+    const threshold = 5;
+    const deltaX = Math.abs(touch.clientX - dragStart.x);
+    const deltaY = Math.abs(touch.clientY - dragStart.y);
+    
+    if (deltaX > threshold || deltaY > threshold) {
+      setHasDragged(true);
+    }
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / scale;
+    const y = (touch.clientY - rect.top) / scale;
+    
+    // ドラッグ中の位置を更新
+    const marker = document.getElementById(`user-marker-${isDragging}`);
+    if (marker) {
+      marker.style.left = `${x * scale}px`;
+      marker.style.top = `${y * scale}px`;
+      marker.style.transform = 'translate(-50%, -50%)';
+    }
+  };
+
   const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !containerRef.current) return;
     
@@ -109,6 +151,33 @@ const MapViewer: React.FC<MapViewerProps> = ({
     setDragStart(null);
     
     // hasDraggedを少し遅延させてリセット（クリックイベントの後に実行）
+    setTimeout(() => setHasDragged(false), 100);
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging || !containerRef.current) return;
+    
+    event.preventDefault();
+    
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / scale;
+    const y = (touch.clientY - rect.top) / scale;
+    
+    // 実際にドラッグした場合のみ位置更新
+    if (hasDragged && onUserLocationDrag && isDragging) {
+      const userLocation = userLocations.find(ul => ul.id === isDragging);
+      if (userLocation) {
+        onUserLocationDrag(userLocation.id, { x, y });
+      }
+    }
+    
+    setIsDragging(null);
+    setDragStart(null);
+    
+    // hasDraggedを少し遅延させてリセット
     setTimeout(() => setHasDragged(false), 100);
   };
 
@@ -218,6 +287,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
             height: '40px',
           }}
           onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.id)}
+          onTouchStart={(e) => handleUserIconTouchStart(e, userLocation.id)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
           title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.location ? ' @ ' + userLocation.location : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
@@ -392,19 +462,23 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
       <div 
         ref={containerRef}
-        className="relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] touch-manipulation"
+        className={`relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${isDragging ? 'touch-none' : 'touch-manipulation'}`}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onTouchStart={(e) => {
-          // タッチ開始時の処理
-          const touch = e.touches[0];
-          if (touch) {
-            const mouseEvent = new MouseEvent('mousedown', {
-              clientX: touch.clientX,
-              clientY: touch.clientY,
-            });
-            e.currentTarget.dispatchEvent(mouseEvent);
+          // マーカーをドラッグ中でない場合のみマップクリックを処理
+          if (!isDragging) {
+            const touch = e.touches[0];
+            if (touch) {
+              const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+              });
+              e.currentTarget.dispatchEvent(mouseEvent);
+            }
           }
         }}
         style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}

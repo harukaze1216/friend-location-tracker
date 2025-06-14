@@ -10,20 +10,21 @@ const LoginButton: React.FC = () => {
 
   if (user) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-2">
           <img 
             src={user.photoURL || ''} 
             alt={user.displayName || ''} 
-            className="w-8 h-8 rounded-full"
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
           />
-          <span className="text-sm">{user.displayName}</span>
+          <span className="text-xs sm:text-sm hidden sm:inline">{user.displayName}</span>
         </div>
         <button
           onClick={logout}
-          className="px-4 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded hover:from-red-500 hover:to-red-600 transition-all shadow-sm"
+          className="px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded hover:from-red-500 hover:to-red-600 transition-all shadow-sm text-xs sm:text-sm"
         >
-          ログアウト
+          <span className="sm:hidden">📤</span>
+          <span className="hidden sm:inline">ログアウト</span>
         </button>
       </div>
     );

@@ -368,13 +368,13 @@ function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
+        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md text-center max-w-sm sm:max-w-md mx-auto">
           <img 
             src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
             alt="リベ大お金の勉強フェス2025" 
             className="w-full max-w-xs mx-auto mb-4"
           />
-          <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
             ともどこ
           </h1>
           <p className="text-sm text-gray-500 mb-4">友達どこにいる？</p>
@@ -389,17 +389,17 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50">
       <div className="max-w-6xl mx-auto px-2 sm:px-4">
         <div className="flex justify-between items-center mb-4 py-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
             <img 
               src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
               alt="リベ大お金の勉強フェス2025" 
-              className="h-8 sm:h-10 lg:h-12"
+              className="h-6 sm:h-8 lg:h-10 flex-shrink-0"
             />
-            <div>
-              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-lg lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent leading-tight">
                 ともどこ
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">友達どこにいる？</p>
+              <p className="text-xs text-gray-500 hidden sm:block leading-tight">友達どこにいる？</p>
             </div>
           </div>
           <LoginButton />
