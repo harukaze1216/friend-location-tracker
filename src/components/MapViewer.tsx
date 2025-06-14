@@ -29,6 +29,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isMultiTouch, setIsMultiTouch] = useState(false);
+  const [recentMultiTouch, setRecentMultiTouch] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -46,7 +47,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || !imageRef.current || isDragging || hasDragged) return;
+    if (!containerRef.current || !imageRef.current || isDragging || hasDragged || recentMultiTouch) return;
     
     const rect = imageRef.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
@@ -116,6 +117,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     // 二本指の場合は通常のスクロールを許可（スケール操作）
     if (touches.length >= 2) {
       setIsMultiTouch(true);
+      setRecentMultiTouch(true);
       // 二本指の場合は preventDefault しない（ブラウザの標準スクロール/ズームを許可）
       return;
     }
@@ -194,6 +196,11 @@ const MapViewer: React.FC<MapViewerProps> = ({
     
     // 全ての指が離れた場合
     setIsMultiTouch(false);
+    
+    // マルチタッチ直後のクリックを防ぐため、少し遅延してリセット
+    setTimeout(() => {
+      setRecentMultiTouch(false);
+    }, 300);
     
     // マーカードラッグ中だった場合の処理
     if (isDragging && containerRef.current) {
@@ -517,11 +524,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
           // 二本指以上の場合は何もしない（スクロール/ズーム用）
           if (touches.length >= 2) {
             setIsMultiTouch(true);
+            setRecentMultiTouch(true);
             return;
           }
           
           // 一本指でマーカーをドラッグ中でない場合のみマップクリックを処理
-          if (!isDragging && touches.length === 1) {
+          if (!isDragging && !recentMultiTouch && touches.length === 1) {
             const touch = touches[0];
             if (touch && imageRef.current) {
               // 画像基準で位置を計算
