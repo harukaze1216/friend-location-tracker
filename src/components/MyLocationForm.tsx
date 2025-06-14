@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserLocation } from '../types';
 
 interface MyLocationFormProps {
@@ -31,11 +31,11 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   const showDeleteButton = !!currentLocation;
 
   // フェス期間の日付リスト（2025年に更新）
-  const festivalDates = [
+  const festivalDates = useMemo(() => [
     { value: '2025-08-09', label: '8月9日(土) - Day 1' },
     { value: '2025-08-10', label: '8月10日(日) - Day 2' },
     { value: '2025-08-11', label: '8月11日(月) - Day 3' }
-  ];
+  ], []);
 
   // currentLocationが変更されたときに値を更新
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +56,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
       setComment('');
       setLocation('');
     }
-  }, [currentLocation]);
+  }, [currentLocation, festivalDates]);
 
   // 現在の日付を取得（デフォルト値用）
   function getTodayDate() {
