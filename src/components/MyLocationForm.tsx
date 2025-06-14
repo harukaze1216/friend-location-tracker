@@ -5,6 +5,7 @@ interface MyLocationFormProps {
   position: { x: number; y: number };
   currentLocation?: UserLocation;
   onSubmit: (data: {
+    date: string;
     time: string;
     endTime?: string;
     comment: string;
@@ -22,14 +23,29 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
     currentLocation?.locationType || 'current'
   );
+  const [date, setDate] = useState(currentLocation?.date || getTodayDate());
   const [time, setTime] = useState(currentLocation?.time || '');
   const [endTime, setEndTime] = useState(currentLocation?.endTime || '');
   const [comment, setComment] = useState(currentLocation?.comment || '');
+
+  // 現在の日付を取得（デフォルト値用）
+  function getTodayDate() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
+
+  // フェス期間の日付リスト
+  const festivalDates = [
+    { value: '2024-08-09', label: '8月9日(金) - Day 1' },
+    { value: '2024-08-10', label: '8月10日(土) - Day 2' },
+    { value: '2024-08-11', label: '8月11日(日) - Day 3' }
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (time && (locationType === 'current' || endTime)) {
       onSubmit({
+        date,
         time,
         endTime: locationType === 'scheduled' ? endTime : undefined,
         comment: comment.trim(),
@@ -84,6 +100,25 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   📅 予定地
                 </button>
               </div>
+            </div>
+
+            {/* 日付選択（フェス期間） */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                日付 *
+              </label>
+              <select
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                {festivalDates.map((festDate) => (
+                  <option key={festDate.value} value={festDate.value}>
+                    {festDate.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 時間設定 */}

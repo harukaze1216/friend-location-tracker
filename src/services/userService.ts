@@ -110,8 +110,11 @@ export const deleteAvatar = async (avatarUrl: string): Promise<void> => {
 // User Location Management
 export const addUserLocation = async (locationData: Omit<UserLocation, 'id' | 'timestamp'>): Promise<string> => {
   try {
-    // Deactivate previous locations for this user
-    await deactivateUserLocations(locationData.userId);
+    // If adding a current location, deactivate all previous current locations
+    // If adding a scheduled location, only deactivate scheduled locations for the same date/time
+    if (locationData.locationType === 'current') {
+      await deactivateUserLocationsByType(locationData.userId, 'current');
+    }
     
     const docRef = await addDoc(collection(db, USER_LOCATIONS_COLLECTION), {
       ...locationData,
@@ -202,6 +205,27 @@ export const deactivateUserLocations = async (userId: string): Promise<void> => 
     await Promise.all(updatePromises);
   } catch (error) {
     console.error('Error deactivating user locations:', error);
+    throw error;
+  }
+};
+
+export const deactivateUserLocationsByType = async (userId: string, locationType: 'current' | 'scheduled'): Promise<void> => {
+  try {
+    const q = query(
+      collection(db, USER_LOCATIONS_COLLECTION),
+      where('userId', '==', userId),
+      where('isActive', '==', true),
+      where('locationType', '==', locationType)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const updatePromises = querySnapshot.docs.map(doc => 
+      updateDoc(doc.ref, { isActive: false })
+    );
+    
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Error deactivating user locations by type:', error);
     throw error;
   }
 };

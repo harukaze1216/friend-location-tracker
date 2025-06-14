@@ -13,6 +13,7 @@ export interface UserLocation {
   userId: string;
   x: number;
   y: number;
+  date: string; // 日付 (YYYY-MM-DD)
   time: string;
   endTime?: string; // 予定地の場合の終了時間
   comment?: string;

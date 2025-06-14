@@ -146,11 +146,43 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const renderUserMarkers = () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
     return userLocations.map((userLocation) => {
       const profile = userProfiles[userLocation.userId];
       const isCurrentUser = userLocation.userId === currentUserId;
       const isDraggingThis = isDragging === userLocation.userId;
       const isScheduled = userLocation.locationType === 'scheduled';
+      
+      // 時間が過ぎているかチェック
+      const isPast = (() => {
+        if (!userLocation.date || !userLocation.time) return false;
+        
+        // 今日以前の日付は過去
+        if (userLocation.date < today) return true;
+        
+        // 今日で、現在時刻より前の時間は過去
+        if (userLocation.date === today) {
+          if (isScheduled && userLocation.endTime) {
+            // 予定地の場合は終了時間で判定
+            return userLocation.endTime < currentTime;
+          } else {
+            // 現在地の場合は開始時間で判定
+            return userLocation.time < currentTime;
+          }
+        }
+        
+        return false;
+      })();
+      
+      // デバッグログ
+      if (!profile) {
+        console.warn('Profile not found for user:', userLocation.userId);
+      } else if (!profile.avatarUrl) {
+        console.log('No avatar URL for user:', profile.displayName);
+      }
       
       // 位置タイプに応じた色とアイコン
       const ringColor = isScheduled ? 'ring-orange-400' : 'ring-blue-400';
@@ -160,9 +192,11 @@ const MapViewer: React.FC<MapViewerProps> = ({
         <div
           key={userLocation.id}
           id={`user-marker-${userLocation.userId}`}
-          className={`absolute rounded-full cursor-pointer transition-transform hover:scale-110 ${
+          className={`absolute rounded-full cursor-pointer transition-all duration-200 hover:scale-110 ${
             isCurrentUser ? `ring-4 ${ringColor} ring-opacity-50` : ''
-          } ${isDraggingThis ? 'scale-110 z-50' : 'z-40'}`}
+          } ${isDraggingThis ? 'scale-110 z-50' : 'z-40'} ${
+            isPast ? 'opacity-50' : 'opacity-100'
+          }`}
           style={{
             left: `${userLocation.x * scale}px`,
             top: `${userLocation.y * scale}px`,
@@ -172,7 +206,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           }}
           onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.userId)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
-          title={`${profile?.displayName || 'Unknown'} - ${userLocation.time}${userLocation.comment ? ': ' + userLocation.comment : ''}`}
+          title={`${profile?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
           {profile?.avatarUrl ? (
             <img
