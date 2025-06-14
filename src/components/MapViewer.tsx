@@ -6,9 +6,11 @@ import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Configure PDF.js worker - use CDN for better reliability
+// Configure PDF.js worker with proper error handling
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+  // Set worker source with fallback
+  const workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.js`;
+  pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 }
 
 interface MapViewerProps {
@@ -51,6 +53,17 @@ const MapViewer: React.FC<MapViewerProps> = ({
     console.error('PDF Load Error:', error);
     console.log('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
     console.log('PDF URL:', pdfFile || pdfUrl);
+    
+    // Try to recover by reloading the page if it's a worker error
+    if (error.message.includes('Worker was terminated')) {
+      console.log('Worker terminated, attempting recovery...');
+      // Optionally reload after a delay
+      setTimeout(() => {
+        if (window.confirm('PDF読み込みに失敗しました。ページを更新しますか？')) {
+          window.location.reload();
+        }
+      }, 1000);
+    }
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -442,18 +455,29 @@ const MapViewer: React.FC<MapViewerProps> = ({
             file={pdfFile || pdfUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
-            loading={<div className="p-4">PDF読み込み中...</div>}
+            loading={<div className="p-4 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p>PDF読み込み中...</p>
+            </div>}
             error={
-              <div className="p-4 text-red-500">
-                <p>PDFの読み込みに失敗しました</p>
-                <p className="text-sm">URL: {pdfUrl}</p>
-                <p className="text-sm">ブラウザのコンソールでエラー詳細を確認してください</p>
+              <div className="p-4 text-red-500 text-center">
+                <p className="mb-2">PDFの読み込みに失敗しました</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  ページを更新
+                </button>
+                <p className="text-sm mt-2 text-gray-600">ブラウザを更新すると解決する場合があります</p>
               </div>
             }
             options={{
-              cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
+              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
               cMapPacked: true,
-              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/`,
+              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+              enableXfa: false,
+              isEvalSupported: false,
+              verbosity: 0,
             }}
           >
             <Page 
