@@ -521,7 +521,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
       <div 
         ref={containerRef}
         className={`relative border border-gray-300 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${
-          mapMode === 'navigation' ? 'overflow-auto touch-manipulation' : 'overflow-hidden touch-none'
+          mapMode === 'navigation' ? 'overflow-auto touch-manipulation' : 'overflow-hidden'
         }`}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
@@ -531,12 +531,16 @@ const MapViewer: React.FC<MapViewerProps> = ({
           if (mapMode === 'navigation' && e.touches.length === 1) {
             const touch = e.touches[0];
             if (touch && imageRef.current) {
+              const initialRect = imageRef.current.getBoundingClientRect();
+              const initialX = touch.clientX;
+              const initialY = touch.clientY;
+              
               // 長押し判定開始（500ms）
               longPressTimeoutRef.current = setTimeout(() => {
-                // 画像基準で位置を計算
-                const rect = imageRef.current!.getBoundingClientRect();
-                const x = (touch.clientX - rect.left) / scale;
-                const y = (touch.clientY - rect.top) / scale;
+                // 長押し実行時に再度位置を計算（より正確）
+                const currentRect = imageRef.current!.getBoundingClientRect();
+                const x = (initialX - currentRect.left) / scale;
+                const y = (initialY - currentRect.top) / scale;
                 onMapClick({ x, y });
               }, 500);
             }
@@ -544,6 +548,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           
           // インタラクションモードの場合は即座にタッチでの位置登録を許可
           if (mapMode === 'interaction' && !isDragging && e.touches.length === 1) {
+            e.preventDefault(); // デフォルトのタッチ動作を防ぐ
             const touch = e.touches[0];
             if (touch && imageRef.current) {
               // 画像基準で位置を計算
@@ -574,7 +579,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
           // 通常のタッチエンド処理
           handleTouchEnd(e);
         }}
-        style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
+        style={{ 
+          cursor: isDragging ? 'grabbing' : 'crosshair',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+          touchAction: mapMode === 'navigation' ? 'manipulation' : 'none'
+        }}
       >
         {mapImageUrl && !imageError && (
           <img
@@ -585,10 +595,18 @@ const MapViewer: React.FC<MapViewerProps> = ({
             style={{
               width: `${1200 * scale}px`,
               height: 'auto',
-              maxWidth: 'none'
+              maxWidth: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitUserDrag: 'none',
+              KhtmlUserDrag: 'none',
+              MozUserDrag: 'none',
+              msUserDrag: 'none',
+              userDrag: 'none'
             }}
             onLoad={handleImageLoad}
             onError={handleImageError}
+            onContextMenu={(e) => e.preventDefault()}
             draggable={false}
           />
         )}
