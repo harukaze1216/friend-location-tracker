@@ -5,11 +5,13 @@ import LocationList from './components/LocationList';
 import LoginButton from './components/LoginButton';
 import UserProfileSetup from './components/UserProfileSetup';
 import MyLocationForm from './components/MyLocationForm';
+import ProfileEdit from './components/ProfileEdit';
 import { Location, MapPoint, UserProfile, UserLocation } from './types';
 import { addLocation, getLocations, deleteLocation } from './services/locationService';
 import { 
   createUserProfile, 
   getUserProfile, 
+  updateUserProfile,
   addUserLocation, 
   updateUserLocation,
   getActiveUserLocations
@@ -25,6 +27,7 @@ function App() {
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('');
@@ -125,6 +128,24 @@ function App() {
     } catch (error) {
       console.error('Failed to create profile:', error);
       alert('プロフィール作成に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProfileEdit = async (updatedData: Partial<UserProfile>) => {
+    if (!currentUserProfile) return;
+
+    try {
+      setLoading(true);
+      await updateUserProfile(currentUserProfile.uid, updatedData);
+      
+      const updatedProfile = { ...currentUserProfile, ...updatedData };
+      setCurrentUserProfile(updatedProfile);
+      setShowProfileEdit(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('プロフィール更新に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -313,7 +334,13 @@ function App() {
                   )}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={() => setShowProfileEdit(true)}
+                  className="text-xs text-gray-500 hover:text-blue-600 underline"
+                >
+                  編集
+                </button>
                 <p className="text-xs text-blue-600 hidden sm:block">地図をクリックして位置を設定・更新</p>
                 <p className="text-xs text-blue-600 sm:hidden">タップして位置設定</p>
               </div>
@@ -414,6 +441,15 @@ function App() {
           <UserProfileSetup
             user={user}
             onProfileComplete={handleProfileComplete}
+          />
+        )}
+
+        {/* プロフィール編集ダイアログ */}
+        {showProfileEdit && currentUserProfile && (
+          <ProfileEdit
+            currentProfile={currentUserProfile}
+            onSave={handleProfileEdit}
+            onCancel={() => setShowProfileEdit(false)}
           />
         )}
 
