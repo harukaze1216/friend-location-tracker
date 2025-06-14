@@ -47,19 +47,18 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     return selectedDate === getTodayDate();
   }
 
-  // 最小時間を取得（今日の場合は現在時刻、未来の日付は00:00）
+  // 最小時間を取得（今日の場合のみ現在時刻制限）
   function getMinTime(selectedDate: string) {
-    return isToday(selectedDate) ? getCurrentTime() : '00:00';
+    // 今日の場合のみ時間制限、それ以外は自由に選択可能
+    return isToday(selectedDate) ? getCurrentTime() : undefined;
   }
 
-  // フェス期間の日付リスト（過去の日付は除外）
-  const today = getTodayDate();
-  const allFestivalDates = [
-    { value: '2024-08-09', label: '8月9日(金) - Day 1' },
-    { value: '2024-08-10', label: '8月10日(土) - Day 2' },
-    { value: '2024-08-11', label: '8月11日(日) - Day 3' }
+  // フェス期間の日付リスト（2025年に更新）
+  const festivalDates = [
+    { value: '2025-08-09', label: '8月9日(土) - Day 1' },
+    { value: '2025-08-10', label: '8月10日(日) - Day 2' },
+    { value: '2025-08-11', label: '8月11日(月) - Day 3' }
   ];
-  const festivalDates = allFestivalDates.filter(dateOption => dateOption.value >= today);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +144,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  min={getMinTime(date)}
+                  min={getMinTime(date) || undefined}
                   className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -169,7 +168,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  min={time || getMinTime(date)}
+                  min={time || getMinTime(date) || undefined}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   required
                 />
