@@ -34,12 +34,32 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     return today.toISOString().split('T')[0];
   }
 
-  // フェス期間の日付リスト
-  const festivalDates = [
+  // 現在時刻を取得
+  function getCurrentTime() {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  // 選択された日付が今日かどうかチェック
+  function isToday(selectedDate: string) {
+    return selectedDate === getTodayDate();
+  }
+
+  // 最小時間を取得（今日の場合は現在時刻、未来の日付は00:00）
+  function getMinTime(selectedDate: string) {
+    return isToday(selectedDate) ? getCurrentTime() : '00:00';
+  }
+
+  // フェス期間の日付リスト（過去の日付は除外）
+  const today = getTodayDate();
+  const allFestivalDates = [
     { value: '2024-08-09', label: '8月9日(金) - Day 1' },
     { value: '2024-08-10', label: '8月10日(土) - Day 2' },
     { value: '2024-08-11', label: '8月11日(日) - Day 3' }
   ];
+  const festivalDates = allFestivalDates.filter(dateOption => dateOption.value >= today);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,12 +74,6 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     }
   };
 
-  const getCurrentTime = () => {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -131,6 +145,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
+                  min={getMinTime(date)}
                   className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -154,6 +169,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  min={time || getMinTime(date)}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   required
                 />

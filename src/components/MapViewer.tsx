@@ -152,7 +152,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const renderCurrentLocationMarkers = () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
     return userLocations
       .filter(ul => ul.locationType === 'current')

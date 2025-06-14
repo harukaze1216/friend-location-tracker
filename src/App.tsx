@@ -31,6 +31,7 @@ function App() {
   const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -295,6 +296,9 @@ function App() {
   if (selectedUser) {
     filteredUserLocations = filteredUserLocations.filter(loc => loc.userId === selectedUser);
   }
+  if (selectedDate) {
+    filteredUserLocations = filteredUserLocations.filter(loc => loc.date === selectedDate);
+  }
   if (locationTypeFilter !== 'all') {
     filteredUserLocations = filteredUserLocations.filter(loc => loc.locationType === locationTypeFilter);
   }
@@ -361,7 +365,7 @@ function App() {
         {currentUserProfile?.profileCompleted && (
           <div className="bg-white rounded-lg shadow-md p-3 mb-3">
             <h3 className="text-sm font-semibold mb-2">フィルタ</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
                 <select
@@ -372,6 +376,23 @@ function App() {
                   <option value="all">すべて表示</option>
                   <option value="current">📍 現在地のみ</option>
                   <option value="scheduled">📅 予定地のみ</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">日付で絞り込み</label>
+                <select
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                >
+                  <option value="">すべての日付</option>
+                  {Array.from(new Set(userLocations.map(ul => ul.date).filter(Boolean))).sort().map(date => {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const monthDay = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                    return (
+                      <option key={date} value={date}>{monthDay}</option>
+                    );
+                  })}
                 </select>
               </div>
               <div>
@@ -404,6 +425,7 @@ function App() {
                 <button
                   onClick={() => {
                     setLocationTypeFilter('all');
+                    setSelectedDate('');
                     setSelectedTime('');
                     setSelectedUser('');
                   }}
