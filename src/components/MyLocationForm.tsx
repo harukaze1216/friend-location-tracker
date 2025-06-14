@@ -11,13 +11,15 @@ interface MyLocationFormProps {
     comment: string;
     locationType: 'current' | 'scheduled';
   }) => void;
+  onDelete?: () => void;
   onCancel: () => void;
 }
 
 const MyLocationForm: React.FC<MyLocationFormProps> = ({ 
   position, 
   currentLocation,
-  onSubmit, 
+  onSubmit,
+  onDelete, 
   onCancel 
 }) => {
   const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
@@ -27,6 +29,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   const [time, setTime] = useState(currentLocation?.time || '');
   const [endTime, setEndTime] = useState(currentLocation?.endTime || '');
   const [comment, setComment] = useState(currentLocation?.comment || '');
+  const showDeleteButton = !!currentLocation;
 
   // 現在の日付を取得（デフォルト値用）
   function getTodayDate() {
@@ -199,6 +202,15 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               >
                 {currentLocation ? '更新' : '登録'}
               </button>
+              {showDeleteButton && onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="px-4 bg-red-500 text-white py-2 rounded hover:bg-red-600 transition-colors"
+                >
+                  削除
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onCancel}

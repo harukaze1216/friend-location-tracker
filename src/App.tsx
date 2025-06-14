@@ -6,6 +6,7 @@ import LoginButton from './components/LoginButton';
 import UserProfileSetup from './components/UserProfileSetup';
 import MyLocationForm from './components/MyLocationForm';
 import ProfileEdit from './components/ProfileEdit';
+import ScheduledLocationsList from './components/ScheduledLocationsList';
 import { Location, MapPoint, UserProfile, UserLocation } from './types';
 import { addLocation, getLocations, deleteLocation } from './services/locationService';
 import { 
@@ -14,6 +15,7 @@ import {
   updateUserProfile,
   addUserLocation, 
   updateUserLocation,
+  deleteUserLocation,
   getActiveUserLocations
 } from './services/userService';
 import { useAuth } from './contexts/AuthContext';
@@ -34,6 +36,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
+  const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -236,6 +239,24 @@ function App() {
     });
   };
 
+  const handleUserLocationDelete = async () => {
+    if (!myLocationFormData?.currentLocation) return;
+    
+    if (window.confirm('この位置情報を削除しますか？')) {
+      try {
+        setLoading(true);
+        await deleteUserLocation(myLocationFormData.currentLocation.id);
+        await loadUserLocations();
+        setMyLocationFormData(null);
+      } catch (error) {
+        console.error('Failed to delete user location:', error);
+        alert('位置情報の削除に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleLocationSubmit = async (data: {
     friendName: string;
     time: string;
@@ -346,12 +367,25 @@ function App() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <button
-                  onClick={() => setShowProfileEdit(true)}
-                  className="text-xs text-gray-500 hover:text-blue-600 underline"
-                >
-                  編集
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowScheduledLocationsList(true)}
+                    className="text-xs text-orange-600 hover:text-orange-700 underline flex items-center gap-1"
+                  >
+                    📅 予定一覧
+                    {userLocations.filter(ul => ul.locationType === 'scheduled' && ul.userId === user?.uid).length > 0 && (
+                      <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center">
+                        {userLocations.filter(ul => ul.locationType === 'scheduled' && ul.userId === user?.uid).length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowProfileEdit(true)}
+                    className="text-xs text-gray-500 hover:text-blue-600 underline"
+                  >
+                    編集
+                  </button>
+                </div>
                 <p className="text-xs text-blue-600 hidden sm:block">地図をクリックして位置を設定・更新</p>
                 <p className="text-xs text-blue-600 sm:hidden">タップして位置設定</p>
               </div>
@@ -363,7 +397,41 @@ function App() {
         {currentUserProfile?.profileCompleted && (
           <div className="bg-white rounded-lg shadow-md p-3 mb-3">
             <h3 className="text-sm font-semibold mb-2">フィルタ</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
+            <div className="space-y-3">
+              {/* クイックフィルター */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    setLocationTypeFilter('scheduled');
+                    setSelectedUser(user?.uid || '');
+                  }}
+                  className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs hover:bg-orange-600 transition-colors"
+                >
+                  📅 自分の予定
+                </button>
+                <button
+                  onClick={() => {
+                    setLocationTypeFilter('current');
+                    setSelectedUser('');
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition-colors"
+                >
+                  📍 現在地一覧
+                </button>
+                <button
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setSelectedDate(today);
+                    setLocationTypeFilter('all');
+                  }}
+                  className="px-3 py-1 bg-green-500 text-white rounded-full text-xs hover:bg-green-600 transition-colors"
+                >
+                  📅 今日
+                </button>
+              </div>
+              
+              {/* 詳細フィルター */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
                 <select
@@ -434,6 +502,7 @@ function App() {
               </div>
             </div>
           </div>
+          </div>
         )}
 
         {/* 地図表示 - 大きく表示 */}
@@ -501,7 +570,19 @@ function App() {
             position={myLocationFormData.position}
             currentLocation={myLocationFormData.currentLocation}
             onSubmit={handleMyLocationSubmit}
+            onDelete={myLocationFormData.currentLocation ? handleUserLocationDelete : undefined}
             onCancel={() => setMyLocationFormData(null)}
+          />
+        )}
+
+        {/* 予定地一覧ダイアログ */}
+        {showScheduledLocationsList && (
+          <ScheduledLocationsList
+            userLocations={userLocations}
+            userProfiles={userProfiles}
+            currentUserId={user?.uid}
+            onLocationClick={handleUserLocationClick}
+            onClose={() => setShowScheduledLocationsList(false)}
           />
         )}
 
