@@ -161,51 +161,32 @@ const MapViewer: React.FC<MapViewerProps> = ({
       const isDraggingThis = isDragging === userLocation.id;
       const isScheduled = false; // 現在地のみ
       
-      // 現在地の時間が過ぎているかチェック
+      // 現在地の時間が過ぎているかチェック（修正版）
       const isPast = (() => {
         if (!userLocation.date || !userLocation.time) {
-          console.log('No date or time, treating as not past');
           return false;
         }
         
-        console.log('Checking isPast for current location:', {
-          locationDate: userLocation.date,
-          locationTime: userLocation.time,
-          today: today,
-          comparison: {
-            'date < today': userLocation.date < today,
-            'date > today': userLocation.date > today,
-            'date === today': userLocation.date === today
-          }
-        });
+        // 日付文字列をDateオブジェクトに変換して比較
+        const locationDate = new Date(userLocation.date + 'T00:00:00');
+        const todayDate = new Date(today + 'T00:00:00');
         
         // 今日以前の日付は過去
-        if (userLocation.date < today) {
-          console.log('Date is in the past');
+        if (locationDate < todayDate) {
           return true;
         }
         
         // 今日より後の日付は未来
-        if (userLocation.date > today) {
-          console.log('Date is in the future, not past');
+        if (locationDate > todayDate) {
           return false;
         }
         
         // 今日で、現在時刻より2時間以上過去
-        if (userLocation.date === today) {
-          const locationTime = userLocation.time;
-          const [hours, minutes] = locationTime.split(':').map(Number);
+        if (locationDate.getTime() === todayDate.getTime()) {
+          const [hours, minutes] = userLocation.time.split(':').map(Number);
           const locationMinutes = hours * 60 + minutes;
           const currentMinutes = now.getHours() * 60 + now.getMinutes();
-          const timeDiff = currentMinutes - locationMinutes;
-          console.log('Same day time check:', {
-            locationTime,
-            locationMinutes,
-            currentMinutes,
-            timeDiff,
-            isPast: timeDiff > 120
-          });
-          return timeDiff > 120;
+          return (currentMinutes - locationMinutes) > 120;
         }
         
         return false;
@@ -296,7 +277,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
     const today = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
-    console.log('Rendering scheduled cards at:', { now, today, currentTime });
     
     return userLocations
       .filter(ul => ul.locationType === 'scheduled')
@@ -317,48 +297,30 @@ const MapViewer: React.FC<MapViewerProps> = ({
           userProfiles[userLocation.userId] = defaultProfile;
         }
         
-        // 予定地の時間が過ぎているかチェック
+        // 予定地の時間が過ぎているかチェック（修正版）
         const isPast = (() => {
           if (!userLocation.date || !userLocation.time) {
-            console.log('Scheduled location: No date or time, treating as not past');
             return false;
           }
           
-          console.log('Checking isPast for scheduled location:', {
-            locationDate: userLocation.date,
-            locationTime: userLocation.time,
-            endTime: userLocation.endTime,
-            today: today,
-            currentTime: currentTime,
-            comparison: {
-              'date < today': userLocation.date < today,
-              'date > today': userLocation.date > today,
-              'date === today': userLocation.date === today
-            }
-          });
+          // 日付文字列をDateオブジェクトに変換して比較
+          const locationDate = new Date(userLocation.date + 'T00:00:00');
+          const todayDate = new Date(today + 'T00:00:00');
           
           // 今日以前の日付は過去
-          if (userLocation.date < today) {
-            console.log('Scheduled date is in the past');
+          if (locationDate < todayDate) {
             return true;
           }
           
           // 今日より後の日付は未来
-          if (userLocation.date > today) {
-            console.log('Scheduled date is in the future, not past');
+          if (locationDate > todayDate) {
             return false;
           }
           
           // 今日で、終了時間が過ぎているかチェック
-          if (userLocation.date === today) {
+          if (locationDate.getTime() === todayDate.getTime()) {
             const endTime = userLocation.endTime || userLocation.time;
-            const timeComparison = endTime < currentTime;
-            console.log('Same day scheduled time check:', {
-              endTime,
-              currentTime,
-              isPast: timeComparison
-            });
-            return timeComparison;
+            return endTime < currentTime;
           }
           
           return false;
