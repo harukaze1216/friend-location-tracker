@@ -150,13 +150,18 @@ const MapViewer: React.FC<MapViewerProps> = ({
       const profile = userProfiles[userLocation.userId];
       const isCurrentUser = userLocation.userId === currentUserId;
       const isDraggingThis = isDragging === userLocation.userId;
+      const isScheduled = userLocation.locationType === 'scheduled';
+      
+      // 位置タイプに応じた色とアイコン
+      const ringColor = isScheduled ? 'ring-orange-400' : 'ring-blue-400';
+      const borderColor = isScheduled ? 'border-orange-300' : 'border-blue-300';
       
       return (
         <div
           key={userLocation.id}
           id={`user-marker-${userLocation.userId}`}
           className={`absolute rounded-full cursor-pointer transition-transform hover:scale-110 ${
-            isCurrentUser ? 'ring-4 ring-blue-400 ring-opacity-50' : ''
+            isCurrentUser ? `ring-4 ${ringColor} ring-opacity-50` : ''
           } ${isDraggingThis ? 'scale-110 z-50' : 'z-40'}`}
           style={{
             left: `${userLocation.x * scale}px`,
@@ -173,18 +178,30 @@ const MapViewer: React.FC<MapViewerProps> = ({
             <img
               src={profile.avatarUrl}
               alt={profile.displayName}
-              className="w-full h-full rounded-full object-cover border-2 border-white shadow-lg"
+              className={`w-full h-full rounded-full object-cover border-2 shadow-lg ${borderColor}`}
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
+            <div className={`w-full h-full rounded-full ${
+              isScheduled 
+                ? 'bg-gradient-to-br from-orange-400 to-red-500' 
+                : 'bg-gradient-to-br from-blue-400 to-purple-500'
+            } flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg`}>
               {profile?.displayName?.charAt(0) || '?'}
             </div>
           )}
           
+          {/* 位置タイプアイコン */}
+          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white shadow-lg flex items-center justify-center text-xs">
+            {isScheduled ? '📅' : '📍'}
+          </div>
+          
           {/* 時間表示 */}
-          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+          <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 ${
+            isScheduled ? 'bg-orange-600' : 'bg-blue-600'
+          } bg-opacity-90 text-white text-xs px-2 py-1 rounded whitespace-nowrap`}>
             {userLocation.time}
+            {isScheduled && userLocation.endTime && ` - ${userLocation.endTime}`}
           </div>
           
           {/* 現在のユーザーを示すドラッグヒント */}
@@ -242,10 +259,21 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
       <div 
         ref={containerRef}
-        className="relative border border-gray-300 overflow-auto max-h-[600px] md:max-h-[700px] lg:max-h-[800px]"
+        className="relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] touch-manipulation"
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={(e) => {
+          // タッチ開始時の処理
+          const touch = e.touches[0];
+          if (touch) {
+            const mouseEvent = new MouseEvent('mousedown', {
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+            });
+            e.currentTarget.dispatchEvent(mouseEvent);
+          }
+        }}
         style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
       >
         {(pdfFile || pdfUrl) && (

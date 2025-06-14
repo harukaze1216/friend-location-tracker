@@ -130,7 +130,12 @@ function App() {
     }
   };
 
-  const handleMyLocationSubmit = async (data: { time: string; comment: string }) => {
+  const handleMyLocationSubmit = async (data: { 
+    time: string; 
+    endTime?: string; 
+    comment: string; 
+    locationType: 'current' | 'scheduled';
+  }) => {
     if (!myLocationFormData || !user) return;
 
     try {
@@ -142,7 +147,11 @@ function App() {
           x: myLocationFormData.position.x,
           y: myLocationFormData.position.y,
           time: data.time,
+          locationType: data.locationType,
         };
+        if (data.endTime) {
+          updateData.endTime = data.endTime;
+        }
         if (data.comment && data.comment.trim()) {
           updateData.comment = data.comment.trim();
         }
@@ -154,8 +163,12 @@ function App() {
           x: myLocationFormData.position.x,
           y: myLocationFormData.position.y,
           time: data.time,
+          locationType: data.locationType,
           isActive: true,
         };
+        if (data.endTime) {
+          newLocationData.endTime = data.endTime;
+        }
         if (data.comment && data.comment.trim()) {
           newLocationData.comment = data.comment.trim();
         }
@@ -269,39 +282,40 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="flex justify-between items-center mb-4 py-2">
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">
             リベ大フェス 友達位置トラッカー
           </h1>
           <LoginButton />
         </div>
 
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <div className="bg-white rounded-lg shadow-md p-3 mb-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {currentUserProfile.avatarUrl ? (
                   <img 
                     src={currentUserProfile.avatarUrl} 
                     alt={currentUserProfile.displayName}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                     {currentUserProfile.displayName.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <h2 className="text-md font-bold">{currentUserProfile.displayName}</h2>
+                  <h2 className="text-sm sm:text-md font-bold">{currentUserProfile.displayName}</h2>
                   {currentUserProfile.libeCityName && (
                     <p className="text-xs text-gray-600">{currentUserProfile.libeCityName}</p>
                   )}
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-blue-600">地図をクリックして位置を設定・更新</p>
+                <p className="text-xs text-blue-600 hidden sm:block">地図をクリックして位置を設定・更新</p>
+                <p className="text-xs text-blue-600 sm:hidden">タップして位置設定</p>
               </div>
             </div>
           </div>
@@ -309,15 +323,15 @@ function App() {
 
         {/* フィルタ機能 */}
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h3 className="text-md font-semibold mb-3">フィルタ</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-md p-3 mb-3">
+            <h3 className="text-sm font-semibold mb-2">フィルタ</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">時間で絞り込み</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">時間で絞り込み</label>
                 <select
                   value={selectedTime}
                   onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
                 >
                   <option value="">すべての時間</option>
                   {Array.from(new Set([...locations.map(l => l.time), ...userLocations.map(ul => ul.time)])).sort().map(time => (
@@ -326,11 +340,11 @@ function App() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
                 >
                   <option value="">すべてのユーザー</option>
                   {Object.values(userProfiles).map(profile => (
@@ -344,7 +358,7 @@ function App() {
                     setSelectedTime('');
                     setSelectedUser('');
                   }}
-                  className="w-full px-3 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                  className="w-full px-3 py-2 bg-gray-500 text-white rounded text-xs sm:text-sm hover:bg-gray-600 touch-manipulation min-h-[44px]"
                 >
                   フィルタをクリア
                 </button>
@@ -354,8 +368,8 @@ function App() {
         )}
 
         {/* 地図表示 - 大きく表示 */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <h2 className="text-lg font-bold mb-4">リベ大フェス会場マップ</h2>
+        <div className="bg-white rounded-lg shadow-md p-2 sm:p-4 mb-4">
+          <h2 className="text-md sm:text-lg font-bold mb-2 sm:mb-4">リベ大フェス会場マップ</h2>
           {pdfUrl || process.env.PUBLIC_URL ? (
             <MapViewer
               pdfFile={null}
@@ -377,7 +391,7 @@ function App() {
 
         {/* 位置情報リスト - コンパクト表示 */}
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4">
             <LocationList
               locations={locations}
               selectedTime={selectedTime}

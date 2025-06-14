@@ -14,9 +14,11 @@ export interface UserLocation {
   x: number;
   y: number;
   time: string;
+  endTime?: string; // 予定地の場合の終了時間
   comment?: string;
   timestamp: Date;
   isActive: boolean;
+  locationType: 'current' | 'scheduled'; // 現在地 or 予定地
 }
 
 export interface Location {

@@ -6,7 +6,9 @@ interface MyLocationFormProps {
   currentLocation?: UserLocation;
   onSubmit: (data: {
     time: string;
+    endTime?: string;
     comment: string;
+    locationType: 'current' | 'scheduled';
   }) => void;
   onCancel: () => void;
 }
@@ -17,15 +19,21 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   onSubmit, 
   onCancel 
 }) => {
+  const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
+    currentLocation?.locationType || 'current'
+  );
   const [time, setTime] = useState(currentLocation?.time || '');
+  const [endTime, setEndTime] = useState(currentLocation?.endTime || '');
   const [comment, setComment] = useState(currentLocation?.comment || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (time) {
+    if (time && (locationType === 'current' || endTime)) {
       onSubmit({
         time,
+        endTime: locationType === 'scheduled' ? endTime : undefined,
         comment: comment.trim(),
+        locationType,
       });
     }
   };
@@ -47,9 +55,41 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 位置タイプ選択 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                時間 *
+                位置の種類 *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLocationType('current')}
+                  className={`p-3 rounded border text-sm font-medium ${
+                    locationType === 'current'
+                      ? 'bg-blue-500 text-white border-blue-500'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  📍 現在地
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationType('scheduled')}
+                  className={`p-3 rounded border text-sm font-medium ${
+                    locationType === 'scheduled'
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  📅 予定地
+                </button>
+              </div>
+            </div>
+
+            {/* 時間設定 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {locationType === 'current' ? '現在時間' : '開始時間'} *
               </label>
               <div className="flex gap-2">
                 <input
@@ -68,6 +108,22 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* 終了時間（予定地の場合のみ） */}
+            {locationType === 'scheduled' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  終了時間 *
+                </label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  required
+                />
+              </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
