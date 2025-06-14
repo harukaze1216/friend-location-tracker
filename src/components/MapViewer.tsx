@@ -98,7 +98,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     event.preventDefault();
     
     // ドラッグを検出
-    const threshold = 3; // しきい値を下げて反応を良くする
+    const threshold = 3;
     const deltaX = Math.abs(event.clientX - dragStart.x);
     const deltaY = Math.abs(event.clientY - dragStart.y);
     
@@ -107,18 +107,19 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
     
-    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
+    // スクロール位置を考慮した正確な位置計算
+    const x = (event.clientX - rect.left + scrollLeft) / scale;
+    const y = (event.clientY - rect.top + scrollTop) / scale;
     
-    // ドラッグ中の位置を更新（DOM操作で高速に）
+    // ドラッグ中の位置を更新（カーソル位置と完全に同期）
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
-      // transform3dを使用してハードウェアアクセラレーションを有効化
-      marker.style.transform = `translate3d(${x * scale - 20}px, ${y * scale - 20}px, 0)`;
-      marker.style.left = '0px';
-      marker.style.top = '0px';
+      marker.style.left = `${x * scale}px`;
+      marker.style.top = `${y * scale}px`;
+      marker.style.transform = 'translate(-50%, -50%)';
     }
   };
 
@@ -132,7 +133,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!touch) return;
     
     // ドラッグを検出
-    const threshold = 3; // しきい値を下げて反応を良くする
+    const threshold = 3;
     const deltaX = Math.abs(touch.clientX - dragStart.x);
     const deltaY = Math.abs(touch.clientY - dragStart.y);
     
@@ -141,18 +142,19 @@ const MapViewer: React.FC<MapViewerProps> = ({
     }
     
     const rect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
     
-    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
-    const x = (touch.clientX - rect.left) / scale;
-    const y = (touch.clientY - rect.top) / scale;
+    // スクロール位置を考慮した正確な位置計算
+    const x = (touch.clientX - rect.left + scrollLeft) / scale;
+    const y = (touch.clientY - rect.top + scrollTop) / scale;
     
-    // ドラッグ中の位置を更新（高速化）
+    // ドラッグ中の位置を更新（指の位置と完全に同期）
     const marker = document.getElementById(`user-marker-${isDragging}`);
     if (marker) {
-      // transform3dを使用してハードウェアアクセラレーションを有効化
-      marker.style.transform = `translate3d(${x * scale - 20}px, ${y * scale - 20}px, 0)`;
-      marker.style.left = '0px';
-      marker.style.top = '0px';
+      marker.style.left = `${x * scale}px`;
+      marker.style.top = `${y * scale}px`;
+      marker.style.transform = 'translate(-50%, -50%)';
     }
   };
 
@@ -160,9 +162,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
     if (!isDragging || !containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
-    // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    const x = (event.clientX - rect.left + scrollLeft) / scale;
+    const y = (event.clientY - rect.top + scrollTop) / scale;
     
     // 実際にドラッグした場合のみ位置更新
     if (hasDragged && onUserLocationDrag && isDragging) {
@@ -188,9 +191,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
       if (!touch) return;
       
       const rect = containerRef.current.getBoundingClientRect();
-      // インタラクションモードではスクロール無効なので、scrollLeft/scrollTopは不要
-      const x = (touch.clientX - rect.left) / scale;
-      const y = (touch.clientY - rect.top) / scale;
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+      const x = (touch.clientX - rect.left + scrollLeft) / scale;
+      const y = (touch.clientY - rect.top + scrollTop) / scale;
       
       // 実際にドラッグした場合のみ位置更新
       if (hasDragged && onUserLocationDrag && isDragging) {
