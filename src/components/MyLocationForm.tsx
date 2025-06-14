@@ -23,27 +23,38 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   onCancel 
 }) => {
   const [locationType, setLocationType] = useState<'current' | 'scheduled'>('scheduled');
-  const [date, setDate] = useState(getTodayDate());
+  const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [comment, setComment] = useState('');
+  const [location, setLocation] = useState('');
   const showDeleteButton = !!currentLocation;
 
+  // フェス期間の日付リスト（2025年に更新）
+  const festivalDates = [
+    { value: '2025-08-09', label: '8月9日(土) - Day 1' },
+    { value: '2025-08-10', label: '8月10日(日) - Day 2' },
+    { value: '2025-08-11', label: '8月11日(月) - Day 3' }
+  ];
+
   // currentLocationが変更されたときに値を更新
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (currentLocation) {
       setLocationType(currentLocation.locationType);
-      setDate(currentLocation.date || getTodayDate());
+      setDate(currentLocation.date || festivalDates[0].value); // フェスの初日をデフォルトに
       setTime(currentLocation.time || '');
       setEndTime(currentLocation.endTime || '');
       setComment(currentLocation.comment || '');
+      setLocation(currentLocation.location || '');
     } else {
       // 新規作成時はリセット
       setLocationType('scheduled');
-      setDate(getTodayDate());
+      setDate(festivalDates[0].value); // フェスの初日をデフォルトに
       setTime('');
       setEndTime('');
       setComment('');
+      setLocation('');
     }
   }, [currentLocation]);
 
@@ -71,13 +82,6 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     // 今日の場合のみ時間制限、それ以外は自由に選択可能
     return isToday(selectedDate) ? getCurrentTime() : undefined;
   }
-
-  // フェス期間の日付リスト（2025年に更新）
-  const festivalDates = [
-    { value: '2025-08-09', label: '8月9日(土) - Day 1' },
-    { value: '2025-08-10', label: '8月10日(日) - Day 2' },
-    { value: '2025-08-11', label: '8月11日(月) - Day 3' }
-  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +197,21 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 />
               </div>
             )}
+            
+            {/* 場所フィールド */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                場所 (任意)
+              </label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="例: メインステージ、フードコートなど"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                maxLength={50}
+              />
+            </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

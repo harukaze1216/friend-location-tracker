@@ -17,6 +17,7 @@ export interface UserLocation {
   time: string;
   endTime?: string; // 予定地の場合の終了時間
   comment?: string;
+  location?: string; // 場所名
   timestamp: Date;
   isActive: boolean;
   locationType: 'current' | 'scheduled'; // 現在地 or 予定地

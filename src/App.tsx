@@ -7,6 +7,7 @@ import UserProfileSetup from './components/UserProfileSetup';
 import MyLocationForm from './components/MyLocationForm';
 import ProfileEdit from './components/ProfileEdit';
 import ScheduledLocationsList from './components/ScheduledLocationsList';
+import LocationDetailModal from './components/LocationDetailModal';
 import { Location, MapPoint, UserProfile, UserLocation } from './types';
 import { addLocation, getLocations, deleteLocation } from './services/locationService';
 import { 
@@ -37,6 +38,7 @@ function App() {
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
   const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
+  const [selectedLocationDetail, setSelectedLocationDetail] = useState<UserLocation | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -162,7 +164,8 @@ function App() {
     date: string;
     time: string; 
     endTime?: string; 
-    comment: string; 
+    comment: string;
+    location?: string; 
     locationType: 'current' | 'scheduled';
   }) => {
     if (!myLocationFormData || !user) return;
@@ -185,6 +188,9 @@ function App() {
         if (data.comment && data.comment.trim()) {
           updateData.comment = data.comment.trim();
         }
+        if (data.location && data.location.trim()) {
+          updateData.location = data.location.trim();
+        }
         await updateUserLocation(myLocationFormData.currentLocation.id, updateData);
       } else {
         // 新しい位置を作成
@@ -202,6 +208,9 @@ function App() {
         }
         if (data.comment && data.comment.trim()) {
           newLocationData.comment = data.comment.trim();
+        }
+        if (data.location && data.location.trim()) {
+          newLocationData.location = data.location.trim();
         }
         await addUserLocation(newLocationData);
       }
@@ -233,10 +242,30 @@ function App() {
   };
 
   const handleUserLocationClick = (userLocation: UserLocation) => {
+    // 現在は詳細モーダルで表示
+    setSelectedLocationDetail(userLocation);
+  };
+
+  const handleLocationEdit = (userLocation: UserLocation) => {
+    setSelectedLocationDetail(null);
     setMyLocationFormData({
       position: { x: userLocation.x, y: userLocation.y },
       currentLocation: userLocation
     });
+  };
+
+  const handleLocationDetailDelete = async (userLocation: UserLocation) => {
+    try {
+      setLoading(true);
+      await deleteUserLocation(userLocation.id);
+      await loadUserLocations();
+      setSelectedLocationDetail(null);
+    } catch (error) {
+      console.error('Failed to delete location:', error);
+      alert('位置情報の削除に失敗しました');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUserLocationDelete = async () => {
@@ -597,6 +626,18 @@ function App() {
             onLocationClick={handleUserLocationClick}
             onLocationDelete={handleScheduledLocationDelete}
             onClose={() => setShowScheduledLocationsList(false)}
+          />
+        )}
+
+        {/* 位置詳細モーダル */}
+        {selectedLocationDetail && (
+          <LocationDetailModal
+            userLocation={selectedLocationDetail}
+            userProfile={userProfiles[selectedLocationDetail.userId]}
+            isCurrentUser={selectedLocationDetail.userId === user?.uid}
+            onEdit={() => handleLocationEdit(selectedLocationDetail)}
+            onDelete={() => handleLocationDetailDelete(selectedLocationDetail)}
+            onClose={() => setSelectedLocationDetail(null)}
           />
         )}
 

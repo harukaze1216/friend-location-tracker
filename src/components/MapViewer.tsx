@@ -229,7 +229,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           }}
           onMouseDown={(e) => handleUserIconMouseDown(e, userLocation.id)}
           onClick={(e) => handleUserIconClick(e, userLocation)}
-          title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
+          title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${isScheduled && userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.location ? ' @ ' + userLocation.location : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
         >
           {(profile || userProfiles[userLocation.userId])?.avatarUrl ? (
             <img
@@ -342,7 +342,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
               zIndex: 30
             }}
             onClick={() => onUserLocationClick && onUserLocationClick(userLocation)}
-            title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
+            title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.location ? ' @ ' + userLocation.location : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
           >
             {/* アバターと時間のみ */}
             <div className="flex items-center gap-1 mb-1">
