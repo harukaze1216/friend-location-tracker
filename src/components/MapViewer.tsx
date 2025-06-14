@@ -375,14 +375,14 @@ const MapViewer: React.FC<MapViewerProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
-            className="px-3 py-1 bg-blue-500 text-white rounded"
+            className="px-3 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all"
           >
             縮小
           </button>
           <span className="text-sm">{Math.round(scale * 100)}%</span>
           <button
             onClick={() => setScale(s => Math.min(2.0, s + 0.1))}
-            className="px-3 py-1 bg-blue-500 text-white rounded"
+            className="px-3 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded shadow-sm hover:from-blue-500 hover:to-blue-600 transition-all"
           >
             拡大
           </button>

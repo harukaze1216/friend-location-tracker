@@ -367,9 +367,17 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h1 className="text-2xl font-bold mb-4">リベ大フェス 友達位置トラッカー</h1>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
+          <img 
+            src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
+            alt="リベ大お金の勉強フェス2025" 
+            className="w-full max-w-xs mx-auto mb-4"
+          />
+          <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+            ともどこ
+          </h1>
+          <p className="text-sm text-gray-500 mb-4">友達どこにいる？</p>
           <p className="text-gray-600 mb-6">利用するにはログインが必要です</p>
           <LoginButton />
         </div>
@@ -378,12 +386,22 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50">
       <div className="max-w-6xl mx-auto px-2 sm:px-4">
         <div className="flex justify-between items-center mb-4 py-2">
-          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">
-            リベ大フェス 友達位置トラッカー
-          </h1>
+          <div className="flex items-center gap-3">
+            <img 
+              src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
+              alt="リベ大お金の勉強フェス2025" 
+              className="h-8 sm:h-10 lg:h-12"
+            />
+            <div>
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+                ともどこ
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">友達どこにいる？</p>
+            </div>
+          </div>
           <LoginButton />
         </div>
 
@@ -459,7 +477,7 @@ function App() {
                   setLocationTypeFilter('scheduled');
                   setSelectedUser(user?.uid || '');
                 }}
-                className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs hover:bg-orange-600 transition-colors"
+                className="px-3 py-1 bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-full text-xs hover:from-orange-500 hover:to-orange-600 transition-all shadow-sm"
               >
                 📅 自分の予定
               </button>
@@ -468,7 +486,7 @@ function App() {
                   setLocationTypeFilter('current');
                   setSelectedUser('');
                 }}
-                className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition-colors"
+                className="px-3 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-full text-xs hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
               >
                 📍 現在地一覧
               </button>
@@ -478,7 +496,7 @@ function App() {
                   setSelectedDate(today);
                   setLocationTypeFilter('all');
                 }}
-                className="px-3 py-1 bg-green-500 text-white rounded-full text-xs hover:bg-green-600 transition-colors"
+                className="px-3 py-1 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-full text-xs hover:from-green-500 hover:to-green-600 transition-all shadow-sm"
               >
                 📅 今日
               </button>
@@ -489,7 +507,7 @@ function App() {
                   setSelectedTime('');
                   setSelectedUser('');
                 }}
-                className="px-3 py-1 bg-gray-500 text-white rounded-full text-xs hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-full text-xs hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm"
               >
                 クリア
               </button>
@@ -562,7 +580,9 @@ function App() {
 
         {/* 地図表示 - 大きく表示 */}
         <div className="bg-white rounded-lg shadow-md p-2 sm:p-4 mb-4">
-          <h2 className="text-md sm:text-lg font-bold mb-2 sm:mb-4">リベ大フェス会場マップ</h2>
+          <h2 className="text-md sm:text-lg font-bold mb-2 sm:mb-4 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+            リベ大フェス会場マップ
+          </h2>
           <MapViewer
             mapImageUrl={mapImageUrl}
             locations={filteredLocations}

@@ -146,7 +146,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               <select
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 required
               >
                 {festivalDates.map((festDate) => (
@@ -208,7 +208,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="例: メインステージ、フードコートなど"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 maxLength={50}
               />
             </div>
@@ -221,7 +221,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="何をしているか、どこにいるかなど..."
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 rows={3}
                 maxLength={200}
               />
@@ -233,7 +233,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors"
+                className="flex-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white py-2 rounded hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
               >
                 {currentLocation ? '更新' : '登録'}
               </button>
@@ -241,7 +241,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 <button
                   type="button"
                   onClick={onDelete}
-                  className="px-4 bg-red-500 text-white py-2 rounded hover:bg-red-600 transition-colors"
+                  className="px-4 bg-gradient-to-r from-red-400 to-red-500 text-white py-2 rounded hover:from-red-500 hover:to-red-600 transition-all shadow-sm"
                 >
                   削除
                 </button>
@@ -249,7 +249,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600 transition-colors"
+                className="flex-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white py-2 rounded hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm"
               >
                 キャンセル
               </button>
