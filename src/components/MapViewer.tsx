@@ -531,7 +531,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
           if (mapMode === 'navigation' && e.touches.length === 1) {
             const touch = e.touches[0];
             if (touch && imageRef.current) {
-              const initialRect = imageRef.current.getBoundingClientRect();
               const initialX = touch.clientX;
               const initialY = touch.clientY;
               
@@ -597,13 +596,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
               height: 'auto',
               maxWidth: 'none',
               WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              WebkitUserDrag: 'none',
-              KhtmlUserDrag: 'none',
-              MozUserDrag: 'none',
-              msUserDrag: 'none',
-              userDrag: 'none'
-            }}
+              WebkitTouchCallout: 'none'
+            } as React.CSSProperties}
             onLoad={handleImageLoad}
             onError={handleImageError}
             onContextMenu={(e) => e.preventDefault()}
