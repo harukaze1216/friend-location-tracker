@@ -6,6 +6,7 @@ interface ScheduledLocationsListProps {
   userProfiles: { [uid: string]: UserProfile };
   currentUserId?: string;
   onLocationClick: (userLocation: UserLocation) => void;
+  onLocationDelete: (userLocation: UserLocation) => void;
   onClose: () => void;
 }
 
@@ -14,6 +15,7 @@ const ScheduledLocationsList: React.FC<ScheduledLocationsListProps> = ({
   userProfiles,
   currentUserId,
   onLocationClick,
+  onLocationDelete,
   onClose
 }) => {
   const scheduledLocations = userLocations
@@ -64,7 +66,12 @@ const ScheduledLocationsList: React.FC<ScheduledLocationsListProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-bold">📅 予定地一覧</h2>
+          <div>
+            <h2 className="text-xl font-bold">📅 予定地一覧</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              全体: {scheduledLocations.length}件 | 自分: {scheduledLocations.filter(l => l.userId === currentUserId).length}件
+            </p>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -94,10 +101,9 @@ const ScheduledLocationsList: React.FC<ScheduledLocationsListProps> = ({
                     return (
                       <div
                         key={location.id}
-                        className={`bg-gray-50 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:bg-gray-100 border-l-4 ${
+                        className={`bg-gray-50 rounded-lg p-4 transition-all duration-200 border-l-4 ${
                           isCurrentUser ? 'border-orange-400' : 'border-gray-300'
                         } ${isExpired ? 'opacity-50' : 'opacity-100'}`}
-                        onClick={() => onLocationClick(location)}
                       >
                         <div className="flex items-start gap-3">
                           {profile?.avatarUrl ? (
@@ -146,8 +152,27 @@ const ScheduledLocationsList: React.FC<ScheduledLocationsListProps> = ({
                           </div>
                           
                           {isCurrentUser && (
-                            <div className="text-blue-500 text-sm">
-                              編集 →
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onLocationClick(location);
+                                }}
+                                className="text-blue-500 text-sm hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                              >
+                                ⚙️ 編集
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('この予定を削除しますか？')) {
+                                    onLocationDelete(location);
+                                  }
+                                }}
+                                className="text-red-500 text-sm hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                              >
+                                🗑️ 削除
+                              </button>
                             </div>
                           )}
                         </div>

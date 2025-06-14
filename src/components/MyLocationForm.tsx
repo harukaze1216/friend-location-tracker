@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserLocation } from '../types';
 
 interface MyLocationFormProps {
@@ -22,14 +22,30 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   onDelete, 
   onCancel 
 }) => {
-  const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
-    currentLocation?.locationType || 'scheduled'
-  );
-  const [date, setDate] = useState(currentLocation?.date || getTodayDate());
-  const [time, setTime] = useState(currentLocation?.time || '');
-  const [endTime, setEndTime] = useState(currentLocation?.endTime || '');
-  const [comment, setComment] = useState(currentLocation?.comment || '');
+  const [locationType, setLocationType] = useState<'current' | 'scheduled'>('scheduled');
+  const [date, setDate] = useState(getTodayDate());
+  const [time, setTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [comment, setComment] = useState('');
   const showDeleteButton = !!currentLocation;
+
+  // currentLocationが変更されたときに値を更新
+  useEffect(() => {
+    if (currentLocation) {
+      setLocationType(currentLocation.locationType);
+      setDate(currentLocation.date || getTodayDate());
+      setTime(currentLocation.time || '');
+      setEndTime(currentLocation.endTime || '');
+      setComment(currentLocation.comment || '');
+    } else {
+      // 新規作成時はリセット
+      setLocationType('scheduled');
+      setDate(getTodayDate());
+      setTime('');
+      setEndTime('');
+      setComment('');
+    }
+  }, [currentLocation]);
 
   // 現在の日付を取得（デフォルト値用）
   function getTodayDate() {

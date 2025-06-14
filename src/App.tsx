@@ -257,6 +257,19 @@ function App() {
     }
   };
 
+  const handleScheduledLocationDelete = async (userLocation: UserLocation) => {
+    try {
+      setLoading(true);
+      await deleteUserLocation(userLocation.id);
+      await loadUserLocations();
+    } catch (error) {
+      console.error('Failed to delete scheduled location:', error);
+      alert('予定地の削除に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLocationSubmit = async (data: {
     friendName: string;
     time: string;
@@ -582,6 +595,7 @@ function App() {
             userProfiles={userProfiles}
             currentUserId={user?.uid}
             onLocationClick={handleUserLocationClick}
+            onLocationDelete={handleScheduledLocationDelete}
             onClose={() => setShowScheduledLocationsList(false)}
           />
         )}
