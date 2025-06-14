@@ -40,6 +40,7 @@ function App() {
   const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
   const [selectedLocationDetail, setSelectedLocationDetail] = useState<UserLocation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
   useEffect(() => {
     loadLocations();
@@ -438,112 +439,124 @@ function App() {
         {/* フィルタ機能 */}
         {currentUserProfile?.profileCompleted && (
           <div className="bg-white rounded-lg shadow-md p-3 mb-3">
-            <h3 className="text-sm font-semibold mb-2">フィルタ</h3>
-            <div className="space-y-3">
-              {/* クイックフィルター */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    setLocationTypeFilter('scheduled');
-                    setSelectedUser(user?.uid || '');
-                  }}
-                  className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs hover:bg-orange-600 transition-colors"
-                >
-                  📅 自分の予定
-                </button>
-                <button
-                  onClick={() => {
-                    setLocationTypeFilter('current');
-                    setSelectedUser('');
-                  }}
-                  className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition-colors"
-                >
-                  📍 現在地一覧
-                </button>
-                <button
-                  onClick={() => {
-                    const today = new Date().toISOString().split('T')[0];
-                    setSelectedDate(today);
-                    setLocationTypeFilter('all');
-                  }}
-                  className="px-3 py-1 bg-green-500 text-white rounded-full text-xs hover:bg-green-600 transition-colors"
-                >
-                  📅 今日
-                </button>
-              </div>
-              
-              {/* 詳細フィルター */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
-                <select
-                  value={locationTypeFilter}
-                  onChange={(e) => setLocationTypeFilter(e.target.value as 'all' | 'current' | 'scheduled')}
-                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
-                >
-                  <option value="all">すべて表示</option>
-                  <option value="current">📍 現在地のみ</option>
-                  <option value="scheduled">📅 予定地のみ</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">日付で絞り込み</label>
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
-                >
-                  <option value="">すべての日付</option>
-                  {Array.from(new Set(userLocations.map(ul => ul.date).filter(Boolean))).sort().map(date => {
-                    const dateObj = new Date(date + 'T00:00:00');
-                    const monthDay = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-                    return (
-                      <option key={date} value={date}>{monthDay}</option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">時間で絞り込み</label>
-                <select
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
-                >
-                  <option value="">すべての時間</option>
-                  {Array.from(new Set([...locations.map(l => l.time), ...userLocations.map(ul => ul.time)])).sort().map(time => (
-                    <option key={time} value={time}>{time}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
-                >
-                  <option value="">すべてのユーザー</option>
-                  {Object.values(userProfiles).map(profile => (
-                    <option key={profile.uid} value={profile.uid}>{profile.displayName}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setLocationTypeFilter('all');
-                    setSelectedDate('');
-                    setSelectedTime('');
-                    setSelectedUser('');
-                  }}
-                  className="w-full px-3 py-2 bg-gray-500 text-white rounded text-xs sm:text-sm hover:bg-gray-600 touch-manipulation min-h-[44px]"
-                >
-                  フィルタをクリア
-                </button>
-              </div>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-semibold">フィルタ</h3>
+              <button
+                onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                {isFilterCollapsed ? '📋' : '📋'}
+                <span className="ml-1 text-xs">
+                  {isFilterCollapsed ? '展開' : '折りたたみ'}
+                </span>
+              </button>
             </div>
-          </div>
+            
+            {/* クイックフィルター - 常に表示 */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={() => {
+                  setLocationTypeFilter('scheduled');
+                  setSelectedUser(user?.uid || '');
+                }}
+                className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs hover:bg-orange-600 transition-colors"
+              >
+                📅 自分の予定
+              </button>
+              <button
+                onClick={() => {
+                  setLocationTypeFilter('current');
+                  setSelectedUser('');
+                }}
+                className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition-colors"
+              >
+                📍 現在地一覧
+              </button>
+              <button
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setSelectedDate(today);
+                  setLocationTypeFilter('all');
+                }}
+                className="px-3 py-1 bg-green-500 text-white rounded-full text-xs hover:bg-green-600 transition-colors"
+              >
+                📅 今日
+              </button>
+              <button
+                onClick={() => {
+                  setLocationTypeFilter('all');
+                  setSelectedDate('');
+                  setSelectedTime('');
+                  setSelectedUser('');
+                }}
+                className="px-3 py-1 bg-gray-500 text-white rounded-full text-xs hover:bg-gray-600 transition-colors"
+              >
+                クリア
+              </button>
+            </div>
+            
+            {/* 詳細フィルター - 折りたたみ可能 */}
+            {!isFilterCollapsed && (
+              <div className="space-y-3 border-t pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
+                    <select
+                      value={locationTypeFilter}
+                      onChange={(e) => setLocationTypeFilter(e.target.value as 'all' | 'current' | 'scheduled')}
+                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                    >
+                      <option value="all">すべて表示</option>
+                      <option value="current">📍 現在地のみ</option>
+                      <option value="scheduled">📅 予定地のみ</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">日付で絞り込み</label>
+                    <select
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                    >
+                      <option value="">すべての日付</option>
+                      {Array.from(new Set(userLocations.map(ul => ul.date).filter(Boolean))).sort().map(date => {
+                        const dateObj = new Date(date + 'T00:00:00');
+                        const monthDay = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                        return (
+                          <option key={date} value={date}>{monthDay}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">時間で絞り込み</label>
+                    <select
+                      value={selectedTime}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                    >
+                      <option value="">すべての時間</option>
+                      {Array.from(new Set([...locations.map(l => l.time), ...userLocations.map(ul => ul.time)])).sort().map(time => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
+                    <select
+                      value={selectedUser}
+                      onChange={(e) => setSelectedUser(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                    >
+                      <option value="">すべてのユーザー</option>
+                      {Object.values(userProfiles).map(profile => (
+                        <option key={profile.uid} value={profile.uid}>{profile.displayName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

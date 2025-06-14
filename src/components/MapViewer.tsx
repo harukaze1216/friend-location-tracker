@@ -331,7 +331,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
               fontSize: '10px',
               zIndex: 30
             }}
-            onClick={() => onUserLocationClick && onUserLocationClick(userLocation)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUserLocationClick && onUserLocationClick(userLocation);
+            }}
             title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.location ? ' @ ' + userLocation.location : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
           >
             {/* アバターと時間のみ */}
