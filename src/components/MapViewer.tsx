@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 
-type MapMode = 'navigation' | 'interaction';
 
 interface MapViewerProps {
   mapImageUrl: string;
@@ -35,7 +34,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [hasDragged, setHasDragged] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [mapMode, setMapMode] = useState<MapMode>('navigation');
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,8 +52,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    // インタラクションモードの場合のみ位置登録を許可
-    if (mapMode !== 'interaction') return;
+    // PC版では通常のクリックで位置登録を許可
     if (!containerRef.current || !imageRef.current || isDragging || hasDragged) return;
     
     const rect = imageRef.current.getBoundingClientRect();
@@ -67,8 +64,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleUserIconMouseDown = (event: React.MouseEvent, userLocationId: string) => {
     event.stopPropagation();
-    // インタラクションモードの場合のみドラッグを許可
-    if (mapMode !== 'interaction') return;
     
     const userLocation = userLocations.find(ul => ul.id === userLocationId);
     if (!userLocation || userLocation.userId !== currentUserId) return; // 自分のアイコンのみドラッグ可能
@@ -80,10 +75,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleUserIconTouchStart = (event: React.TouchEvent, userLocationId: string) => {
     event.stopPropagation();
-    // インタラクションモードの場合のみドラッグを許可
-    if (mapMode !== 'interaction') return;
-    
     event.preventDefault(); // タッチ時のスクロールを防ぐ
+    
     const userLocation = userLocations.find(ul => ul.id === userLocationId);
     if (!userLocation || userLocation.userId !== currentUserId) return;
     
@@ -122,8 +115,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    // インタラクションモード且つマーカードラッグ中の場合のみ処理
-    if (mapMode !== 'interaction' || !isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
+    // マーカードラッグ中の場合のみ処理
+    if (!isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
     
     event.preventDefault(); // スクロールを防ぐ
     
@@ -207,12 +200,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleUserIconClick = (event: React.MouseEvent, userLocation: UserLocation) => {
     event.stopPropagation();
-    // インタラクションモードの場合のみクリックを許可
-    if (mapMode !== 'interaction') return;
     // ドラッグ直後の場合はクリックイベントを無視
     if (hasDragged) return;
     
-    if (onUserLocationClick && userLocation.userId === currentUserId) {
+    if (onUserLocationClick) {
       onUserLocationClick(userLocation);
     }
   };
@@ -467,29 +458,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   return (
     <div className="w-full">
-      {/* モード切り替えUI */}
+      {/* 拡大縮小コントロール */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMapMode('navigation')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              mapMode === 'navigation'
-                ? 'bg-gradient-to-r from-green-400 to-green-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            🗺️ 地図移動
-          </button>
-          <button
-            onClick={() => setMapMode('interaction')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              mapMode === 'interaction'
-                ? 'bg-gradient-to-r from-orange-400 to-orange-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            📍 位置操作
-          </button>
+        <div className="text-sm text-gray-600">
+          <span>💡 <strong>操作方法:</strong> PC=クリック、スマホ=長押しで位置登録。マーカーはドラッグで移動可能。</span>
         </div>
         
         <div className="flex items-center gap-2">
@@ -508,27 +480,16 @@ const MapViewer: React.FC<MapViewerProps> = ({
           </button>
         </div>
       </div>
-      
-      {/* モード説明 */}
-      <div className="mb-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
-        {mapMode === 'navigation' ? (
-          <span>🗺️ <strong>地図移動モード:</strong> 指でスクロール・ピンチズーム可能。位置登録は長押しで可能です。</span>
-        ) : (
-          <span>📍 <strong>位置操作モード:</strong> タップで位置登録、ドラッグでマーカー移動可能。地図の移動は無効です。</span>
-        )}
-      </div>
 
       <div 
         ref={containerRef}
-        className={`relative border border-gray-300 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${
-          mapMode === 'navigation' ? 'overflow-auto touch-manipulation' : 'overflow-hidden'
-        }`}
+        className="relative border border-gray-300 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] overflow-auto touch-manipulation"
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onTouchStart={(e) => {
-          // ナビゲーションモードでは長押しで位置登録を許可
-          if (mapMode === 'navigation' && e.touches.length === 1) {
+          // スマホでは長押しで位置登録を許可
+          if (e.touches.length === 1 && !isDragging) {
             const touch = e.touches[0];
             if (touch && imageRef.current) {
               const initialX = touch.clientX;
@@ -542,19 +503,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
                 const y = (initialY - currentRect.top) / scale;
                 onMapClick({ x, y });
               }, 500);
-            }
-          }
-          
-          // インタラクションモードの場合は即座にタッチでの位置登録を許可
-          if (mapMode === 'interaction' && !isDragging && e.touches.length === 1) {
-            e.preventDefault(); // デフォルトのタッチ動作を防ぐ
-            const touch = e.touches[0];
-            if (touch && imageRef.current) {
-              // 画像基準で位置を計算
-              const rect = imageRef.current.getBoundingClientRect();
-              const x = (touch.clientX - rect.left) / scale;
-              const y = (touch.clientY - rect.top) / scale;
-              onMapClick({ x, y });
             }
           }
         }}
@@ -582,7 +530,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
           cursor: isDragging ? 'grabbing' : 'crosshair',
           WebkitUserSelect: 'none',
           WebkitTouchCallout: 'none',
-          touchAction: mapMode === 'navigation' ? 'manipulation' : 'none'
+          touchAction: 'manipulation'
         }}
       >
         {mapImageUrl && !imageError && (
