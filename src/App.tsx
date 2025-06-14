@@ -154,22 +154,28 @@ function App() {
       
       if (myLocationFormData.currentLocation) {
         // 既存の位置を更新
-        await updateUserLocation(myLocationFormData.currentLocation.id, {
+        const updateData: any = {
           x: myLocationFormData.position.x,
           y: myLocationFormData.position.y,
           time: data.time,
-          comment: data.comment || undefined,
-        });
+        };
+        if (data.comment && data.comment.trim()) {
+          updateData.comment = data.comment.trim();
+        }
+        await updateUserLocation(myLocationFormData.currentLocation.id, updateData);
       } else {
         // 新しい位置を作成
-        await addUserLocation({
+        const newLocationData: any = {
           userId: user.uid,
           x: myLocationFormData.position.x,
           y: myLocationFormData.position.y,
           time: data.time,
-          comment: data.comment || undefined,
           isActive: true,
-        });
+        };
+        if (data.comment && data.comment.trim()) {
+          newLocationData.comment = data.comment.trim();
+        }
+        await addUserLocation(newLocationData);
       }
       
       await loadUserLocations();

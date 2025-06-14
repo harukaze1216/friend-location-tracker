@@ -182,8 +182,35 @@ const onDocumentLoadError = (error: Error) => {
 2. **バージョン整合性保証**: pdfjs-distと完全一致するworkerファイル使用
 3. **診断情報充実**: エラー発生時の詳細情報取得
 
+## ✅ 追加修正 (2025-06-14)
+
+### Firestoreエラー修正
+**問題**: `comment`フィールドがundefinedでFirestoreに送信されエラー
+**解決**: 
+```javascript
+// 空のcommentはフィールド自体を省略
+if (data.comment && data.comment.trim()) {
+  updateData.comment = data.comment.trim();
+}
+```
+
+### Worker警告軽減
+**問題**: PDF表示成功後もWorker terminatedの警告
+**解決**:
+```javascript
+// Worker重複設定を防止
+if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.js`;
+}
+```
+
+### 現在の状況
+- ✅ PDF読み込み・表示成功
+- ✅ ユーザー位置登録のFirestoreエラー修正
+- ⚠️ Worker内部警告は残るが機能に影響なし
+
 ### 今後の対策
-1. **短期**: React 18 + ローカルWorkerで安定運用
+1. **短期**: React 18 + ローカルWorkerで安定運用、機能開発に集中
 2. **中長期**: react-pdfのReact 19対応版リリース後に再アップグレード検討
 
 ### 監視ポイント
