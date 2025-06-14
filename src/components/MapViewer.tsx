@@ -330,8 +330,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
               cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
               cMapPacked: true,
               standardFontDataUrl: `https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/`,
-              disableWorker: false,
-              isEvalSupported: false,
             }}
           >
             <Page 
