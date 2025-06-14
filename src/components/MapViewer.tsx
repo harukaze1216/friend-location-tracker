@@ -6,8 +6,8 @@ import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Configure PDF.js worker for Create React App
-pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.js`;
+// Configure PDF.js worker for stable version
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 interface MapViewerProps {
   pdfFile: File | null;
@@ -240,9 +240,9 @@ const MapViewer: React.FC<MapViewerProps> = ({
               </div>
             }
             options={{
-              cMapUrl: `https://unpkg.com/pdfjs-dist@4.8.69/cmaps/`,
+              cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
               cMapPacked: true,
-              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@4.8.69/standard_fonts/`,
+              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/`,
             }}
           >
             <Page 
