@@ -39,6 +39,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [scale, setScale] = useState<number>(1.0);
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [hasDragged, setHasDragged] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -53,7 +54,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || isDragging) return;
+    if (!containerRef.current || isDragging || hasDragged) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
@@ -68,25 +69,33 @@ const MapViewer: React.FC<MapViewerProps> = ({
     
     setIsDragging(userId);
     setDragStart({ x: event.clientX, y: event.clientY });
+    setHasDragged(false);
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !dragStart || !containerRef.current) return;
     
     event.preventDefault();
+    
+    // ドラッグを検出
+    const threshold = 5; // 5px以上動いたらドラッグとみなす
+    const deltaX = Math.abs(event.clientX - dragStart.x);
+    const deltaY = Math.abs(event.clientY - dragStart.y);
+    
+    if (deltaX > threshold || deltaY > threshold) {
+      setHasDragged(true);
+    }
+    
     const rect = containerRef.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
     
-    // ドラッグ中の位置を更新
-    const userLocation = userLocations.find(ul => ul.userId === isDragging);
-    if (userLocation) {
-      // 一時的に位置を更新（DOM操作）
-      const marker = document.getElementById(`user-marker-${isDragging}`);
-      if (marker) {
-        marker.style.left = `${x * scale}px`;
-        marker.style.top = `${y * scale}px`;
-      }
+    // ドラッグ中の位置を更新（DOM操作で一時的に表示）
+    const marker = document.getElementById(`user-marker-${isDragging}`);
+    if (marker) {
+      marker.style.left = `${x * scale}px`;
+      marker.style.top = `${y * scale}px`;
+      marker.style.transform = 'translate(-50%, -50%)';
     }
   };
 
@@ -97,16 +106,23 @@ const MapViewer: React.FC<MapViewerProps> = ({
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
     
-    if (onUserLocationDrag) {
+    // 実際にドラッグした場合のみ位置更新
+    if (hasDragged && onUserLocationDrag) {
       onUserLocationDrag(isDragging, { x, y });
     }
     
     setIsDragging(null);
     setDragStart(null);
+    
+    // hasDraggedを少し遅延させてリセット（クリックイベントの後に実行）
+    setTimeout(() => setHasDragged(false), 100);
   };
 
   const handleUserIconClick = (event: React.MouseEvent, userLocation: UserLocation) => {
     event.stopPropagation();
+    // ドラッグ直後の場合はクリックイベントを無視
+    if (hasDragged) return;
+    
     if (onUserLocationClick && userLocation.userId === currentUserId) {
       onUserLocationClick(userLocation);
     }
