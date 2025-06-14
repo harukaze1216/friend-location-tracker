@@ -39,7 +39,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const handleImageLoad = () => {
     console.log('Map image loaded successfully');
@@ -532,10 +531,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
           if (mapMode === 'navigation' && e.touches.length === 1) {
             const touch = e.touches[0];
             if (touch && imageRef.current) {
-              setIsLongPressing(false);
               // 長押し判定開始（500ms）
               longPressTimeoutRef.current = setTimeout(() => {
-                setIsLongPressing(true);
                 // 画像基準で位置を計算
                 const rect = imageRef.current!.getBoundingClientRect();
                 const x = (touch.clientX - rect.left) / scale;
@@ -562,7 +559,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
           if (longPressTimeoutRef.current) {
             clearTimeout(longPressTimeoutRef.current);
             longPressTimeoutRef.current = null;
-            setIsLongPressing(false);
           }
           
           // 通常のタッチムーブ処理
@@ -573,7 +569,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
           if (longPressTimeoutRef.current) {
             clearTimeout(longPressTimeoutRef.current);
             longPressTimeoutRef.current = null;
-            setIsLongPressing(false);
           }
           
           // 通常のタッチエンド処理
