@@ -85,8 +85,20 @@ export const uploadAvatar = async (uid: string, file: File): Promise<string> => 
   }
 };
 
+// Firebase StorageのURLかどうかを判定
+const isFirebaseStorageUrl = (url: string): boolean => {
+  return url.includes('firebasestorage.googleapis.com') || 
+         url.includes('storage.googleapis.com');
+};
+
 export const deleteAvatar = async (avatarUrl: string): Promise<void> => {
   try {
+    // Firebase StorageのURLでない場合（Google アカウントの画像など）は削除しない
+    if (!isFirebaseStorageUrl(avatarUrl)) {
+      console.log('External avatar URL, skipping deletion:', avatarUrl);
+      return;
+    }
+    
     const avatarRef = ref(storage, avatarUrl);
     await deleteObject(avatarRef);
   } catch (error) {

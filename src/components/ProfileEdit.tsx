@@ -60,12 +60,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       // 新しいアバターがアップロードされている場合
       if (avatarFile) {
         setUploading(true);
-        // 古いアバターを削除
+        // 古いアバターを削除（Firebase Storageの場合のみ）
         if (currentProfile.avatarUrl) {
           try {
             await deleteAvatar(currentProfile.avatarUrl);
           } catch (error) {
-            console.warn('Failed to delete old avatar:', error);
+            console.warn('Failed to delete old avatar (external URL):', error);
+            // 外部URLの場合は無視して続行
           }
         }
         // 新しいアバターをアップロード
@@ -76,7 +77,8 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         try {
           await deleteAvatar(currentProfile.avatarUrl);
         } catch (error) {
-          console.warn('Failed to delete avatar:', error);
+          console.warn('Failed to delete avatar (external URL):', error);
+          // 外部URLの場合は無視して続行
         }
         avatarUrl = '';
       }
