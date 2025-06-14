@@ -149,18 +149,20 @@ const MapViewer: React.FC<MapViewerProps> = ({
     ));
   };
 
-  const renderUserMarkers = () => {
+  const renderCurrentLocationMarkers = () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
-    return userLocations.map((userLocation) => {
+    return userLocations
+      .filter(ul => ul.locationType === 'current')
+      .map((userLocation) => {
       const profile = userProfiles[userLocation.userId];
       const isCurrentUser = userLocation.userId === currentUserId;
       const isDraggingThis = isDragging === userLocation.id;
-      const isScheduled = userLocation.locationType === 'scheduled';
+      const isScheduled = false; // 現在地のみ
       
-      // 時間が過ぎているかチェック
+      // 現在地の時間が過ぎているかチェック
       const isPast = (() => {
         if (!userLocation.date || !userLocation.time) return false;
         
@@ -170,20 +172,13 @@ const MapViewer: React.FC<MapViewerProps> = ({
         // 今日より後の日付は未来
         if (userLocation.date > today) return false;
         
-        // 今日で、現在時刻と比較
+        // 今日で、現在時刻より2時間以上過去
         if (userLocation.date === today) {
-          if (isScheduled && userLocation.endTime) {
-            // 予定地の場合は終了時間で判定
-            return userLocation.endTime < currentTime;
-          } else {
-            // 現在地の場合は開始時間から2時間後で判定
-            const locationTime = userLocation.time;
-            const [hours, minutes] = locationTime.split(':').map(Number);
-            const locationMinutes = hours * 60 + minutes;
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            // 現在地は2時間後に過去扱い
-            return (currentMinutes - locationMinutes) > 120;
-          }
+          const locationTime = userLocation.time;
+          const [hours, minutes] = locationTime.split(':').map(Number);
+          const locationMinutes = hours * 60 + minutes;
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+          return (currentMinutes - locationMinutes) > 120;
         }
         
         return false;
@@ -267,6 +262,103 @@ const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       );
     }).filter(Boolean);
+  };
+
+  const renderScheduledLocationCards = () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    return userLocations
+      .filter(ul => ul.locationType === 'scheduled')
+      .map((userLocation) => {
+        const profile = userProfiles[userLocation.userId];
+        const isCurrentUser = userLocation.userId === currentUserId;
+        
+        // プロフィールが見つからない場合はデフォルトプロフィールを作成
+        if (!profile) {
+          console.warn('Profile not found for user:', userLocation.userId, 'using default profile');
+          const defaultProfile: UserProfile = {
+            uid: userLocation.userId,
+            displayName: 'Unknown User',
+            profileCompleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          userProfiles[userLocation.userId] = defaultProfile;
+        }
+        
+        // 予定地の時間が過ぎているかチェック
+        const isPast = (() => {
+          if (!userLocation.date || !userLocation.time) return false;
+          
+          // 今日以前の日付は過去
+          if (userLocation.date < today) return true;
+          
+          // 今日より後の日付は未来
+          if (userLocation.date > today) return false;
+          
+          // 今日で、終了時間が過ぎているかチェック
+          if (userLocation.date === today) {
+            const endTime = userLocation.endTime || userLocation.time;
+            return endTime < currentTime;
+          }
+          
+          return false;
+        })();
+        
+        return (
+          <div
+            key={userLocation.id}
+            className={`absolute bg-white rounded-lg shadow-lg border-2 ${
+              isCurrentUser ? 'border-orange-400' : 'border-gray-200'
+            } p-2 cursor-pointer transition-all duration-200 hover:scale-105 ${
+              isPast ? 'opacity-50' : 'opacity-100'
+            }`}
+            style={{
+              left: `${userLocation.x * scale + 20}px`,
+              top: `${userLocation.y * scale - 10}px`,
+              width: '140px',
+              fontSize: '12px',
+              zIndex: 30
+            }}
+            onClick={() => onUserLocationClick && onUserLocationClick(userLocation)}
+            title={`${(profile || userProfiles[userLocation.userId])?.displayName || 'Unknown'} - ${userLocation.date} ${userLocation.time}${userLocation.endTime ? ` - ${userLocation.endTime}` : ''}${userLocation.comment ? ': ' + userLocation.comment : ''}${isPast ? ' (過去)' : ''}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              {(profile || userProfiles[userLocation.userId])?.avatarUrl ? (
+                <img
+                  src={(profile || userProfiles[userLocation.userId])?.avatarUrl}
+                  alt={(profile || userProfiles[userLocation.userId])?.displayName || 'User'}
+                  className="w-6 h-6 rounded-full object-cover border border-gray-300"
+                  draggable={false}
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xs border border-gray-300">
+                  {((profile || userProfiles[userLocation.userId])?.displayName || 'U').charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-xs truncate text-gray-800">
+                  {((profile || userProfiles[userLocation.userId])?.displayName || 'Unknown').substring(0, 10)}
+                </div>
+              </div>
+              <div className="text-orange-500 text-xs">
+                📅
+              </div>
+            </div>
+            <div className="text-xs text-gray-600 mb-1">
+              {userLocation.time}{userLocation.endTime ? ` - ${userLocation.endTime}` : ''}
+            </div>
+            {userLocation.comment && (
+              <div className="text-xs text-gray-500 truncate">
+                {userLocation.comment.substring(0, 20)}{userLocation.comment.length > 20 ? '...' : ''}
+              </div>
+            )}
+          </div>
+        );
+      })
+      .filter(Boolean);
   };
 
   return (
@@ -358,7 +450,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
           </Document>
         )}
         {renderLocationMarkers()}
-        {renderUserMarkers()}
+        {renderCurrentLocationMarkers()}
+        {renderScheduledLocationCards()}
       </div>
     </div>
   );

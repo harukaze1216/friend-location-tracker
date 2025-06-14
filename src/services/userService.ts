@@ -111,10 +111,11 @@ export const deleteAvatar = async (avatarUrl: string): Promise<void> => {
 export const addUserLocation = async (locationData: Omit<UserLocation, 'id' | 'timestamp'>): Promise<string> => {
   try {
     // If adding a current location, deactivate all previous current locations
-    // If adding a scheduled location, only deactivate scheduled locations for the same date/time
+    // Scheduled locations can have multiple active entries
     if (locationData.locationType === 'current') {
       await deactivateUserLocationsByType(locationData.userId, 'current');
     }
+    // For scheduled locations, we allow multiple active entries
     
     const docRef = await addDoc(collection(db, USER_LOCATIONS_COLLECTION), {
       ...locationData,
