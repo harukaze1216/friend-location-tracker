@@ -28,6 +28,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [hasDragged, setHasDragged] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isMultiTouch, setIsMultiTouch] = useState(false);
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -41,6 +43,16 @@ const MapViewer: React.FC<MapViewerProps> = ({
     console.error('Map image load error:', mapImageUrl);
     setImageError(true);
     setImageLoaded(false);
+  };
+
+  // 二本指の距離を計算
+  const getTouchDistance = (touches: TouchList) => {
+    if (touches.length < 2) return null;
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -109,38 +121,48 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStart || !containerRef.current) return;
+    const touches = event.touches;
     
-    event.preventDefault(); // スクロールを防ぐ
-    
-    const touch = event.touches[0];
-    if (!touch) return;
-    
-    // ドラッグを検出
-    const threshold = 5;
-    const deltaX = Math.abs(touch.clientX - dragStart.x);
-    const deltaY = Math.abs(touch.clientY - dragStart.y);
-    
-    if (deltaX > threshold || deltaY > threshold) {
-      setHasDragged(true);
+    // 二本指の場合は通常のスクロールを許可（スケール操作）
+    if (touches.length >= 2) {
+      setIsMultiTouch(true);
+      // 二本指の場合は preventDefault しない（ブラウザの標準スクロール/ズームを許可）
+      return;
     }
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    
-    // スクロールを考慮した位置計算
-    const x = (touch.clientX - rect.left + scrollLeft) / scale;
-    const y = (touch.clientY - rect.top + scrollTop) / scale;
-    
-    // ドラッグ中の位置を更新
-    const marker = document.getElementById(`user-marker-${isDragging}`);
-    if (marker) {
-      // スクロール位置に関係なく、絶対位置で設定
-      marker.style.left = `${x * scale}px`;
-      marker.style.top = `${y * scale}px`;
-      marker.style.transform = 'translate(-50%, -50%)';
-      marker.style.position = 'absolute';
+    // 一本指でマーカードラッグ中の場合
+    if (isDragging && dragStart && containerRef.current) {
+      event.preventDefault(); // スクロールを防ぐ
+      
+      const touch = touches[0];
+      if (!touch) return;
+      
+      // ドラッグを検出
+      const threshold = 5;
+      const deltaX = Math.abs(touch.clientX - dragStart.x);
+      const deltaY = Math.abs(touch.clientY - dragStart.y);
+      
+      if (deltaX > threshold || deltaY > threshold) {
+        setHasDragged(true);
+      }
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+      
+      // スクロールを考慮した位置計算
+      const x = (touch.clientX - rect.left + scrollLeft) / scale;
+      const y = (touch.clientY - rect.top + scrollTop) / scale;
+      
+      // ドラッグ中の位置を更新
+      const marker = document.getElementById(`user-marker-${isDragging}`);
+      if (marker) {
+        // スクロール位置に関係なく、絶対位置で設定
+        marker.style.left = `${x * scale}px`;
+        marker.style.top = `${y * scale}px`;
+        marker.style.transform = 'translate(-50%, -50%)';
+        marker.style.position = 'absolute';
+      }
     }
   };
 
@@ -169,32 +191,49 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging || !containerRef.current) return;
+    const touches = event.touches;
     
-    event.preventDefault();
-    
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    const x = (touch.clientX - rect.left + scrollLeft) / scale;
-    const y = (touch.clientY - rect.top + scrollTop) / scale;
-    
-    // 実際にドラッグした場合のみ位置更新
-    if (hasDragged && onUserLocationDrag && isDragging) {
-      const userLocation = userLocations.find(ul => ul.id === isDragging);
-      if (userLocation) {
-        onUserLocationDrag(userLocation.id, { x, y });
+    // まだ指が画面に残っている場合（マルチタッチ終了）
+    if (touches.length > 0) {
+      if (touches.length === 1) {
+        // 二本指→一本指になった場合、マルチタッチ状態をリセット
+        setIsMultiTouch(false);
+        setLastTouchDistance(null);
       }
+      return;
     }
     
-    setIsDragging(null);
-    setDragStart(null);
+    // 全ての指が離れた場合
+    setIsMultiTouch(false);
+    setLastTouchDistance(null);
     
-    // hasDraggedを少し遅延させてリセット
-    setTimeout(() => setHasDragged(false), 100);
+    // マーカードラッグ中だった場合の処理
+    if (isDragging && containerRef.current) {
+      event.preventDefault();
+      
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+      const x = (touch.clientX - rect.left + scrollLeft) / scale;
+      const y = (touch.clientY - rect.top + scrollTop) / scale;
+      
+      // 実際にドラッグした場合のみ位置更新
+      if (hasDragged && onUserLocationDrag && isDragging) {
+        const userLocation = userLocations.find(ul => ul.id === isDragging);
+        if (userLocation) {
+          onUserLocationDrag(userLocation.id, { x, y });
+        }
+      }
+      
+      setIsDragging(null);
+      setDragStart(null);
+      
+      // hasDraggedを少し遅延させてリセット
+      setTimeout(() => setHasDragged(false), 100);
+    }
   };
 
   const handleUserIconClick = (event: React.MouseEvent, userLocation: UserLocation) => {
@@ -478,16 +517,24 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
       <div 
         ref={containerRef}
-        className={`relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${isDragging ? 'touch-none' : 'touch-manipulation'}`}
+        className={`relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] ${isDragging ? 'touch-none' : isMultiTouch ? 'touch-pan-x touch-pan-y touch-pinch-zoom' : 'touch-manipulation'}`}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchStart={(e) => {
-          // マーカーをドラッグ中でない場合のみマップクリックを処理
-          if (!isDragging) {
-            const touch = e.touches[0];
+          const touches = e.touches;
+          
+          // 二本指以上の場合は何もしない（スクロール/ズーム用）
+          if (touches.length >= 2) {
+            setIsMultiTouch(true);
+            return;
+          }
+          
+          // 一本指でマーカーをドラッグ中でない場合のみマップクリックを処理
+          if (!isDragging && touches.length === 1) {
+            const touch = touches[0];
             if (touch && imageRef.current) {
               // 画像基準で位置を計算
               const rect = imageRef.current.getBoundingClientRect();
