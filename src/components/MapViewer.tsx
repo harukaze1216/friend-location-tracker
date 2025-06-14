@@ -29,7 +29,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isMultiTouch, setIsMultiTouch] = useState(false);
-  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -45,15 +44,6 @@ const MapViewer: React.FC<MapViewerProps> = ({
     setImageLoaded(false);
   };
 
-  // 二本指の距離を計算
-  const getTouchDistance = (touches: TouchList) => {
-    if (touches.length < 2) return null;
-    const touch1 = touches[0];
-    const touch2 = touches[1];
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || !imageRef.current || isDragging || hasDragged) return;
@@ -198,14 +188,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
       if (touches.length === 1) {
         // 二本指→一本指になった場合、マルチタッチ状態をリセット
         setIsMultiTouch(false);
-        setLastTouchDistance(null);
       }
       return;
     }
     
     // 全ての指が離れた場合
     setIsMultiTouch(false);
-    setLastTouchDistance(null);
     
     // マーカードラッグ中だった場合の処理
     if (isDragging && containerRef.current) {
