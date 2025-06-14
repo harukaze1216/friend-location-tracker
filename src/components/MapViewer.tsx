@@ -38,6 +38,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
   const [mapMode, setMapMode] = useState<MapMode>('navigation');
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const handleImageLoad = () => {
     console.log('Map image loaded successfully');
@@ -93,7 +95,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStart || !containerRef.current) return;
+    if (!isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
     
     event.preventDefault();
     
@@ -106,13 +108,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
       setHasDragged(true);
     }
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    
-    // スクロール位置を考慮した正確な位置計算
-    const x = (event.clientX - rect.left + scrollLeft) / scale;
-    const y = (event.clientY - rect.top + scrollTop) / scale;
+    // 画像要素基準で位置を計算（スクロール位置に関係なく正確）
+    const imageRect = imageRef.current.getBoundingClientRect();
+    const x = (event.clientX - imageRect.left) / scale;
+    const y = (event.clientY - imageRect.top) / scale;
     
     // ドラッグ中の位置を更新（カーソル位置と完全に同期）
     const marker = document.getElementById(`user-marker-${isDragging}`);
@@ -125,7 +124,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
     // インタラクションモード且つマーカードラッグ中の場合のみ処理
-    if (mapMode !== 'interaction' || !isDragging || !dragStart || !containerRef.current) return;
+    if (mapMode !== 'interaction' || !isDragging || !dragStart || !containerRef.current || !imageRef.current) return;
     
     event.preventDefault(); // スクロールを防ぐ
     
@@ -141,13 +140,10 @@ const MapViewer: React.FC<MapViewerProps> = ({
       setHasDragged(true);
     }
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    
-    // スクロール位置を考慮した正確な位置計算
-    const x = (touch.clientX - rect.left + scrollLeft) / scale;
-    const y = (touch.clientY - rect.top + scrollTop) / scale;
+    // 画像要素基準で位置を計算（スクロール位置に関係なく正確）
+    const imageRect = imageRef.current.getBoundingClientRect();
+    const x = (touch.clientX - imageRect.left) / scale;
+    const y = (touch.clientY - imageRect.top) / scale;
     
     // ドラッグ中の位置を更新（指の位置と完全に同期）
     const marker = document.getElementById(`user-marker-${isDragging}`);
@@ -159,13 +155,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
   };
 
   const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !containerRef.current) return;
+    if (!isDragging || !containerRef.current || !imageRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-    const x = (event.clientX - rect.left + scrollLeft) / scale;
-    const y = (event.clientY - rect.top + scrollTop) / scale;
+    // 画像要素基準で位置を計算
+    const imageRect = imageRef.current.getBoundingClientRect();
+    const x = (event.clientX - imageRect.left) / scale;
+    const y = (event.clientY - imageRect.top) / scale;
     
     // 実際にドラッグした場合のみ位置更新
     if (hasDragged && onUserLocationDrag && isDragging) {
@@ -184,17 +179,16 @@ const MapViewer: React.FC<MapViewerProps> = ({
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     // マーカードラッグ中だった場合の処理
-    if (isDragging && containerRef.current) {
+    if (isDragging && containerRef.current && imageRef.current) {
       event.preventDefault();
       
       const touch = event.changedTouches[0];
       if (!touch) return;
       
-      const rect = containerRef.current.getBoundingClientRect();
-      const scrollLeft = containerRef.current.scrollLeft;
-      const scrollTop = containerRef.current.scrollTop;
-      const x = (touch.clientX - rect.left + scrollLeft) / scale;
-      const y = (touch.clientY - rect.top + scrollTop) / scale;
+      // 画像要素基準で位置を計算
+      const imageRect = imageRef.current.getBoundingClientRect();
+      const x = (touch.clientX - imageRect.left) / scale;
+      const y = (touch.clientY - imageRect.top) / scale;
       
       // 実際にドラッグした場合のみ位置更新
       if (hasDragged && onUserLocationDrag && isDragging) {
@@ -519,7 +513,7 @@ const MapViewer: React.FC<MapViewerProps> = ({
       {/* モード説明 */}
       <div className="mb-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
         {mapMode === 'navigation' ? (
-          <span>🗺️ <strong>地図移動モード:</strong> 指でスクロール・ピンチズーム可能。位置登録やマーカー操作は無効です。</span>
+          <span>🗺️ <strong>地図移動モード:</strong> 指でスクロール・ピンチズーム可能。位置登録は長押しで可能です。</span>
         ) : (
           <span>📍 <strong>位置操作モード:</strong> タップで位置登録、ドラッグでマーカー移動可能。地図の移動は無効です。</span>
         )}
@@ -533,20 +527,57 @@ const MapViewer: React.FC<MapViewerProps> = ({
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         onTouchStart={(e) => {
-          // インタラクションモードの場合のみタッチでの位置登録を許可
-          if (mapMode !== 'interaction' || isDragging || e.touches.length !== 1) return;
-          
-          const touch = e.touches[0];
-          if (touch && imageRef.current) {
-            // 画像基準で位置を計算
-            const rect = imageRef.current.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) / scale;
-            const y = (touch.clientY - rect.top) / scale;
-            onMapClick({ x, y });
+          // ナビゲーションモードでは長押しで位置登録を許可
+          if (mapMode === 'navigation' && e.touches.length === 1) {
+            const touch = e.touches[0];
+            if (touch && imageRef.current) {
+              setIsLongPressing(false);
+              // 長押し判定開始（500ms）
+              longPressTimeoutRef.current = setTimeout(() => {
+                setIsLongPressing(true);
+                // 画像基準で位置を計算
+                const rect = imageRef.current!.getBoundingClientRect();
+                const x = (touch.clientX - rect.left) / scale;
+                const y = (touch.clientY - rect.top) / scale;
+                onMapClick({ x, y });
+              }, 500);
+            }
           }
+          
+          // インタラクションモードの場合は即座にタッチでの位置登録を許可
+          if (mapMode === 'interaction' && !isDragging && e.touches.length === 1) {
+            const touch = e.touches[0];
+            if (touch && imageRef.current) {
+              // 画像基準で位置を計算
+              const rect = imageRef.current.getBoundingClientRect();
+              const x = (touch.clientX - rect.left) / scale;
+              const y = (touch.clientY - rect.top) / scale;
+              onMapClick({ x, y });
+            }
+          }
+        }}
+        onTouchMove={(e) => {
+          // 長押し中に指が動いたらキャンセル
+          if (longPressTimeoutRef.current) {
+            clearTimeout(longPressTimeoutRef.current);
+            longPressTimeoutRef.current = null;
+            setIsLongPressing(false);
+          }
+          
+          // 通常のタッチムーブ処理
+          handleTouchMove(e);
+        }}
+        onTouchEnd={(e) => {
+          // 長押しタイマーをクリア
+          if (longPressTimeoutRef.current) {
+            clearTimeout(longPressTimeoutRef.current);
+            longPressTimeoutRef.current = null;
+            setIsLongPressing(false);
+          }
+          
+          // 通常のタッチエンド処理
+          handleTouchEnd(e);
         }}
         style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
       >
