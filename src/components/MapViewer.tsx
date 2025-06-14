@@ -1,21 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
 import { Location, MapPoint, UserLocation, UserProfile } from '../types';
 
-// Import pdfjs worker legacy
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-// Configure PDF.js worker with proper error handling
-if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  // Set worker source with fallback
-  const workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.js`;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-}
-
 interface MapViewerProps {
-  pdfFile: File | null;
-  pdfUrl?: string;
+  mapImageUrl: string;
   locations: Location[];
   userLocations: UserLocation[];
   userProfiles: { [uid: string]: UserProfile };
@@ -26,8 +13,7 @@ interface MapViewerProps {
 }
 
 const MapViewer: React.FC<MapViewerProps> = ({ 
-  pdfFile, 
-  pdfUrl, 
+  mapImageUrl, 
   locations, 
   userLocations,
   userProfiles,
@@ -36,40 +22,31 @@ const MapViewer: React.FC<MapViewerProps> = ({
   onUserLocationDrag,
   onUserLocationClick
 }) => {
-  const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    console.log('PDF loaded successfully:', numPages, 'pages');
-    setNumPages(numPages);
+  const handleImageLoad = () => {
+    console.log('Map image loaded successfully');
+    setImageLoaded(true);
+    setImageError(false);
   };
 
-  const onDocumentLoadError = (error: Error) => {
-    console.error('PDF Load Error:', error);
-    console.log('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
-    console.log('PDF URL:', pdfFile || pdfUrl);
-    
-    // Try to recover by reloading the page if it's a worker error
-    if (error.message.includes('Worker was terminated')) {
-      console.log('Worker terminated, attempting recovery...');
-      // Optionally reload after a delay
-      setTimeout(() => {
-        if (window.confirm('PDF読み込みに失敗しました。ページを更新しますか？')) {
-          window.location.reload();
-        }
-      }, 1000);
-    }
+  const handleImageError = () => {
+    console.error('Map image load error:', mapImageUrl);
+    setImageError(true);
+    setImageLoaded(false);
   };
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || isDragging || hasDragged) return;
+  const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current || !imageRef.current || isDragging || hasDragged) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = imageRef.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
     
@@ -408,33 +385,12 @@ const MapViewer: React.FC<MapViewerProps> = ({
           </button>
         </div>
         
-        {numPages > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-              disabled={pageNumber <= 1}
-              className="px-3 py-1 bg-gray-500 text-white rounded disabled:opacity-50"
-            >
-              前
-            </button>
-            <span className="text-sm">
-              {pageNumber} / {numPages}
-            </span>
-            <button
-              onClick={() => setPageNumber(p => Math.min(numPages, p + 1))}
-              disabled={pageNumber >= numPages}
-              className="px-3 py-1 bg-gray-500 text-white rounded disabled:opacity-50"
-            >
-              次
-            </button>
-          </div>
-        )}
       </div>
 
       <div 
         ref={containerRef}
         className="relative border border-gray-300 overflow-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] lg:max-h-[700px] touch-manipulation"
-        onClick={handleCanvasClick}
+        onClick={handleMapClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onTouchStart={(e) => {
@@ -450,47 +406,52 @@ const MapViewer: React.FC<MapViewerProps> = ({
         }}
         style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
       >
-        {(pdfFile || pdfUrl) && (
-          <Document
-            file={pdfFile || pdfUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading={<div className="p-4 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <p>PDF読み込み中...</p>
-            </div>}
-            error={
-              <div className="p-4 text-red-500 text-center">
-                <p className="mb-2">PDFの読み込みに失敗しました</p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                >
-                  ページを更新
-                </button>
-                <p className="text-sm mt-2 text-gray-600">ブラウザを更新すると解決する場合があります</p>
-              </div>
-            }
-            options={{
-              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
-              cMapPacked: true,
-              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
-              enableXfa: false,
-              isEvalSupported: false,
-              verbosity: 0,
+        {mapImageUrl && !imageError && (
+          <img
+            ref={imageRef}
+            src={mapImageUrl}
+            alt="Festival Map"
+            className="block"
+            style={{
+              width: `${1200 * scale}px`,
+              height: 'auto',
+              maxWidth: 'none'
             }}
-          >
-            <Page 
-              pageNumber={pageNumber} 
-              scale={scale}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-            />
-          </Document>
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            draggable={false}
+          />
         )}
-        {renderLocationMarkers()}
-        {renderCurrentLocationMarkers()}
-        {renderScheduledLocationCards()}
+        
+        {imageError && (
+          <div className="p-4 text-red-500 text-center">
+            <p className="mb-2">地図画像の読み込みに失敗しました</p>
+            <button 
+              onClick={() => {
+                setImageError(false);
+                setImageLoaded(false);
+              }}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+              再読み込み
+            </button>
+          </div>
+        )}
+        
+        {!imageLoaded && !imageError && mapImageUrl && (
+          <div className="p-4 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <p>地図読み込み中...</p>
+          </div>
+        )}
+        
+        {imageLoaded && (
+          <>
+            {renderLocationMarkers()}
+            {renderCurrentLocationMarkers()}
+            {renderScheduledLocationCards()}
+          </>
+        )}
       </div>
     </div>
   );

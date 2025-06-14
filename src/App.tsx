@@ -24,7 +24,7 @@ import './App.css';
 
 function App() {
   const { user } = useAuth();
-  const [pdfUrl] = useState<string>('');
+  const mapImageUrl = `${process.env.PUBLIC_URL}/libefes_map.png`;
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
@@ -550,23 +550,16 @@ function App() {
         {/* 地図表示 - 大きく表示 */}
         <div className="bg-white rounded-lg shadow-md p-2 sm:p-4 mb-4">
           <h2 className="text-md sm:text-lg font-bold mb-2 sm:mb-4">リベ大フェス会場マップ</h2>
-          {pdfUrl || process.env.PUBLIC_URL ? (
-            <MapViewer
-              pdfFile={null}
-              pdfUrl={`${process.env.PUBLIC_URL}/location_map.pdf`}
-              locations={filteredLocations}
-              userLocations={filteredUserLocations}
-              userProfiles={userProfiles}
-              currentUserId={user?.uid}
-              onMapClick={handleMapClick}
-              onUserLocationDrag={handleUserLocationDrag}
-              onUserLocationClick={handleUserLocationClick}
-            />
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              地図を読み込み中...
-            </div>
-          )}
+          <MapViewer
+            mapImageUrl={mapImageUrl}
+            locations={filteredLocations}
+            userLocations={filteredUserLocations}
+            userProfiles={userProfiles}
+            currentUserId={user?.uid}
+            onMapClick={handleMapClick}
+            onUserLocationDrag={handleUserLocationDrag}
+            onUserLocationClick={handleUserLocationClick}
+          />
         </div>
 
         {/* 位置情報リスト - コンパクト表示 */}
