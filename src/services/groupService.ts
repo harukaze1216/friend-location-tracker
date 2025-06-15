@@ -142,27 +142,34 @@ export const joinGroup = async (groupId: string): Promise<void> => {
 // 複数グループから脱退（指定したグループのみ）
 export const leaveSpecificGroup = async (groupId: string): Promise<void> => {
   try {
+    console.log('脱退開始:', groupId);
     await runTransaction(db, async (transaction) => {
       const groupRef = doc(db, GROUPS_COLLECTION, groupId);
       const groupDoc = await transaction.get(groupRef);
       
+      console.log('グループ存在確認:', groupDoc.exists());
       if (!groupDoc.exists()) {
-        throw new Error('Group not found');
+        throw new Error(`Group not found: ${groupId}`);
       }
       
-      const currentCount = groupDoc.data().memberCount || 0;
+      const groupData = groupDoc.data();
+      const currentCount = groupData.memberCount || 0;
+      console.log('現在のメンバー数:', currentCount);
       
       if (currentCount <= 1) {
         // 最後のメンバーが脱退する場合、グループを削除
+        console.log('グループを削除');
         transaction.delete(groupRef);
       } else {
         // メンバー数を減少
+        console.log('メンバー数を減少');
         transaction.update(groupRef, {
           memberCount: increment(-1),
           updatedAt: serverTimestamp(),
         });
       }
     });
+    console.log('脱退完了');
   } catch (error) {
     console.error('Error leaving specific group:', error);
     throw error;

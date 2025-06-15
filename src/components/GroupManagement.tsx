@@ -125,7 +125,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       onGroupsChange(updatedGroups);
     } catch (error) {
       console.error('Error leaving group:', error);
-      setError('グループからの脱退に失敗しました');
+      const errorMessage = error instanceof Error ? error.message : 'グループからの脱退に失敗しました';
+      setError(`脱退エラー: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
