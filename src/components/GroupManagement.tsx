@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { Group, UserProfile } from '../types';
-import { createGroup, findGroupByCode, joinGroup, leaveGroup } from '../services/groupService';
+import { createGroup, findGroupByCode, joinGroup, leaveSpecificGroup } from '../services/groupService';
 import { updateUserProfile } from '../services/userService';
+import { isAdmin } from '../utils/admin';
 
 interface GroupManagementProps {
   currentUser: UserProfile;
-  currentGroup?: Group | null;
-  onGroupChange: (group: Group | null) => void;
+  currentGroups: Group[];
+  onGroupsChange: (groups: Group[]) => void;
   onClose: () => void;
 }
 
 const GroupManagement: React.FC<GroupManagementProps> = ({
   currentUser,
-  currentGroup,
-  onGroupChange,
+  currentGroups,
+  onGroupsChange,
   onClose
 }) => {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
@@ -21,6 +22,9 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // 現在のユーザーが管理者かどうか
+  const isUserAdmin = isAdmin(currentUser.uid);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,18 +34,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     setError('');
     
     try {
-      // 既存のグループから脱退
-      if (currentUser.groupId) {
-        await leaveGroup(currentUser.groupId);
-      }
-
       // 新しいグループを作成
       const newGroup = await createGroup(groupName.trim(), currentUser.uid);
       
-      // ユーザープロフィールを更新
-      await updateUserProfile(currentUser.uid, { groupId: newGroup.id });
+      // 現在のグループリストに追加
+      const currentGroupIds = currentUser.groupIds || [];
+      const updatedGroupIds = [...currentGroupIds, newGroup.id];
       
-      onGroupChange(newGroup);
+      // ユーザープロフィールを更新
+      await updateUserProfile(currentUser.uid, { groupIds: updatedGroupIds });
+      
+      onGroupsChange([...currentGroups, newGroup]);
       onClose();
     } catch (error) {
       console.error('Error creating group:', error);
@@ -66,18 +69,23 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
         return;
       }
 
-      // 既存のグループから脱退
-      if (currentUser.groupId) {
-        await leaveGroup(currentUser.groupId);
+      // 既に参加しているかチェック
+      const currentGroupIds = currentUser.groupIds || [];
+      if (currentGroupIds.includes(group.id)) {
+        setError('既にこのグループに参加しています');
+        return;
       }
 
       // 新しいグループに参加
       await joinGroup(group.id);
       
-      // ユーザープロフィールを更新
-      await updateUserProfile(currentUser.uid, { groupId: group.id });
+      // グループIDリストに追加
+      const updatedGroupIds = [...currentGroupIds, group.id];
       
-      onGroupChange(group);
+      // ユーザープロフィールを更新
+      await updateUserProfile(currentUser.uid, { groupIds: updatedGroupIds });
+      
+      onGroupsChange([...currentGroups, group]);
       onClose();
     } catch (error) {
       console.error('Error joining group:', error);
@@ -87,20 +95,25 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     }
   };
 
-  const handleLeaveGroup = async () => {
-    if (!currentUser.groupId || !currentGroup) return;
-    
-    if (!window.confirm(`「${currentGroup.name}」から脱退しますか？`)) return;
+  const handleLeaveGroup = async (group: Group) => {
+    if (!window.confirm(`「${group.name}」から脱退しますか？`)) return;
 
     setLoading(true);
     setError('');
     
     try {
-      await leaveGroup(currentUser.groupId);
-      await updateUserProfile(currentUser.uid, { groupId: undefined });
+      await leaveSpecificGroup(group.id);
       
-      onGroupChange(null);
-      onClose();
+      // グループIDリストから削除
+      const currentGroupIds = currentUser.groupIds || [];
+      const updatedGroupIds = currentGroupIds.filter(id => id !== group.id);
+      
+      // ユーザープロフィールを更新
+      await updateUserProfile(currentUser.uid, { groupIds: updatedGroupIds });
+      
+      // グループリストから削除
+      const updatedGroups = currentGroups.filter(g => g.id !== group.id);
+      onGroupsChange(updatedGroups);
     } catch (error) {
       console.error('Error leaving group:', error);
       setError('グループからの脱退に失敗しました');
@@ -131,45 +144,56 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
           {mode === 'menu' && (
             <div className="space-y-4">
-              {currentGroup ? (
-                <div className="p-4 bg-green-50 border border-green-200 rounded">
-                  <h4 className="font-medium text-green-800 mb-2">現在のグループ</h4>
-                  <p className="text-green-700">
-                    <strong>{currentGroup.name}</strong>
-                  </p>
-                  <p className="text-sm text-green-600 mb-3">
-                    参加コード: <code className="bg-green-100 px-2 py-1 rounded font-mono">{currentGroup.code}</code>
-                  </p>
-                  <p className="text-sm text-green-600 mb-3">
-                    メンバー数: {currentGroup.memberCount}人
-                  </p>
-                  <button
-                    onClick={handleLeaveGroup}
-                    disabled={loading}
-                    className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 text-sm"
-                  >
-                    グループから脱退
-                  </button>
+              {currentGroups.length > 0 ? (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-800 mb-2">参加中のグループ</h4>
+                  {currentGroups.map((group) => (
+                    <div key={group.id} className="p-4 bg-green-50 border border-green-200 rounded">
+                      <p className="text-green-700 font-medium">{group.name}</p>
+                      <p className="text-sm text-green-600 mb-2">
+                        参加コード: <code className="bg-green-100 px-2 py-1 rounded font-mono">{group.code}</code>
+                      </p>
+                      <p className="text-sm text-green-600 mb-3">
+                        メンバー数: {group.memberCount}人
+                      </p>
+                      <button
+                        onClick={() => handleLeaveGroup(group)}
+                        disabled={loading}
+                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 text-sm"
+                      >
+                        脱退
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded">
                   <p className="text-gray-600 mb-4">まだどのグループにも参加していません</p>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setMode('create')}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
-                    >
-                      🆕 新しいグループを作成
-                    </button>
-                    <button
-                      onClick={() => setMode('join')}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white rounded hover:from-green-500 hover:to-green-600 transition-all shadow-sm"
-                    >
-                      🔗 グループに参加
-                    </button>
-                  </div>
                 </div>
               )}
+              
+              {/* 新規作成・参加ボタン（常に表示） */}
+              <div className="space-y-2">
+                {isUserAdmin && (
+                  <button
+                    onClick={() => setMode('create')}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
+                  >
+                    🆕 新しいグループを作成
+                  </button>
+                )}
+                <button
+                  onClick={() => setMode('join')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white rounded hover:from-green-500 hover:to-green-600 transition-all shadow-sm"
+                >
+                  🔗 グループに参加
+                </button>
+                {!isUserAdmin && (
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    グループの作成は管理者のみ可能です
+                  </p>
+                )}
+              </div>
             </div>
           )}
 

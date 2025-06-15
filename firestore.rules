@@ -29,5 +29,22 @@ service cloud.firestore {
       allow delete: if request.auth != null 
         && request.auth.uid == resource.data.userId;
     }
+    
+    // Groups - authenticated users can read, only admins can create
+    match /groups/{groupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.createdBy
+        && isAdmin(request.auth.uid);
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.createdBy;
+    }
+    
+    // Admin check function
+    function isAdmin(uid) {
+      // 管理者UIDのリスト
+      return uid in ['sT6dXIJK5fgBQgnakENYXqKfJHV2', '3j4I6CYJOTdkksSpiDgUkWJrZal2'];
+    }
   }
 }

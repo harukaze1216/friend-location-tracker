@@ -4,7 +4,8 @@ export interface UserProfile {
   avatarUrl?: string;
   libeCityName?: string;
   profileCompleted: boolean;
-  groupId?: string; // 参加中のグループID
+  groupIds?: string[]; // 参加中のグループIDリスト（複数グループ対応）
+  groupId?: string; // 後方互換性のため残す（非推奨）
   createdAt: Date;
   updatedAt: Date;
 }

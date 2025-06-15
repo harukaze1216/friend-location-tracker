@@ -139,6 +139,36 @@ export const joinGroup = async (groupId: string): Promise<void> => {
   }
 };
 
+// 複数グループから脱退（指定したグループのみ）
+export const leaveSpecificGroup = async (groupId: string): Promise<void> => {
+  try {
+    await runTransaction(db, async (transaction) => {
+      const groupRef = doc(db, GROUPS_COLLECTION, groupId);
+      const groupDoc = await transaction.get(groupRef);
+      
+      if (!groupDoc.exists()) {
+        throw new Error('Group not found');
+      }
+      
+      const currentCount = groupDoc.data().memberCount || 0;
+      
+      if (currentCount <= 1) {
+        // 最後のメンバーが脱退する場合、グループを削除
+        transaction.delete(groupRef);
+      } else {
+        // メンバー数を減少
+        transaction.update(groupRef, {
+          memberCount: increment(-1),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Error leaving specific group:', error);
+    throw error;
+  }
+};
+
 // グループ脱退（メンバー数を減少）
 export const leaveGroup = async (groupId: string): Promise<void> => {
   try {

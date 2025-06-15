@@ -31,7 +31,7 @@ function App() {
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
-  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+  const [currentGroups, setCurrentGroups] = useState<Group[]>([]);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showGroupManagement, setShowGroupManagement] = useState(false);
@@ -40,7 +40,7 @@ function App() {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
-  const [groupFilter, setGroupFilter] = useState<'all' | 'group' | 'no-group'>('all');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'no-group' | string>('all'); // string はグループID
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
   const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
   const [selectedLocationDetail, setSelectedLocationDetail] = useState<UserLocation | null>(null);
@@ -72,8 +72,11 @@ function App() {
           setShowProfileSetup(true);
         }
         // グループ情報も読み込み
-        if (profile.groupId) {
-          loadCurrentGroup(profile.groupId);
+        if (profile.groupIds && profile.groupIds.length > 0) {
+          loadCurrentGroups(profile.groupIds);
+        } else if (profile.groupId) {
+          // 後方互換性のため、古いgroupIdも対応
+          loadCurrentGroups([profile.groupId]);
         }
       } else {
         setShowProfileSetup(true);
@@ -84,12 +87,14 @@ function App() {
     }
   };
 
-  const loadCurrentGroup = async (groupId: string) => {
+  const loadCurrentGroups = async (groupIds: string[]) => {
     try {
-      const group = await getGroup(groupId);
-      setCurrentGroup(group);
+      const groupPromises = groupIds.map(id => getGroup(id));
+      const groups = await Promise.all(groupPromises);
+      const validGroups = groups.filter(group => group !== null) as Group[];
+      setCurrentGroups(validGroups);
     } catch (error) {
-      console.error('Failed to load group:', error);
+      console.error('Failed to load groups:', error);
       // グループが見つからない場合は無視
     }
   };
@@ -391,12 +396,13 @@ function App() {
   if (groupFilter !== 'all') {
     filteredUserLocations = filteredUserLocations.filter(loc => {
       const userProfile = userProfiles[loc.userId];
-      if (groupFilter === 'group') {
-        return userProfile?.groupId === currentUserProfile?.groupId && currentUserProfile?.groupId;
-      } else if (groupFilter === 'no-group') {
-        return !userProfile?.groupId;
+      if (groupFilter === 'no-group') {
+        return !userProfile?.groupIds?.length && !userProfile?.groupId;
+      } else {
+        // 特定のグループでフィルター
+        const userGroupIds = userProfile?.groupIds || (userProfile?.groupId ? [userProfile.groupId] : []);
+        return userGroupIds.includes(groupFilter);
       }
-      return true;
     });
   }
 
@@ -473,9 +479,9 @@ function App() {
                   {currentUserProfile.libeCityName && (
                     <p className="text-xs text-gray-600">{currentUserProfile.libeCityName}</p>
                   )}
-                  {currentGroup && (
+                  {currentGroups.length > 0 && (
                     <p className="text-xs text-green-600">
-                      👥 {currentGroup.name} ({currentGroup.memberCount}人)
+                      👥 {currentGroups.length}グループ参加中
                     </p>
                   )}
                 </div>
@@ -550,18 +556,19 @@ function App() {
               >
                 📍 現在地一覧
               </button>
-              {currentGroup && (
+              {currentGroups.map((group) => (
                 <button
+                  key={group.id}
                   onClick={() => {
-                    setGroupFilter('group');
+                    setGroupFilter(group.id);
                     setLocationTypeFilter('all');
                     setSelectedUser('');
                   }}
                   className="px-3 py-1 bg-gradient-to-r from-purple-400 to-purple-500 text-white rounded-full text-xs hover:from-purple-500 hover:to-purple-600 transition-all shadow-sm"
                 >
-                  👥 {currentGroup.name}
+                  👥 {group.name}
                 </button>
-              )}
+              ))}
               <button
                 onClick={() => {
                   const today = new Date().toISOString().split('T')[0];
@@ -606,13 +613,13 @@ function App() {
                     <label className="block text-xs font-medium text-gray-700 mb-1">グループ</label>
                     <select
                       value={groupFilter}
-                      onChange={(e) => setGroupFilter(e.target.value as 'all' | 'group' | 'no-group')}
+                      onChange={(e) => setGroupFilter(e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
                     >
                       <option value="all">すべて表示</option>
-                      {currentGroup && (
-                        <option value="group">👥 {currentGroup.name}のみ</option>
-                      )}
+                      {currentGroups.map((group) => (
+                        <option key={group.id} value={group.id}>👥 {group.name}のみ</option>
+                      ))}
                       <option value="no-group">グループ未参加のみ</option>
                     </select>
                   </div>
@@ -757,12 +764,17 @@ function App() {
         {showGroupManagement && currentUserProfile && (
           <GroupManagement
             currentUser={currentUserProfile}
-            currentGroup={currentGroup}
-            onGroupChange={(group) => {
-              setCurrentGroup(group);
+            currentGroups={currentGroups}
+            onGroupsChange={(groups) => {
+              setCurrentGroups(groups);
               // プロフィール情報も更新
-              setCurrentUserProfile(prev => prev ? { ...prev, groupId: group?.id } : null);
+              const groupIds = groups.map(g => g.id);
+              setCurrentUserProfile(prev => prev ? { ...prev, groupIds } : null);
+              // ユーザープロフィール情報もリセットして再読み込み
+              setUserProfiles({});
               loadUserLocations(); // グループ変更後にユーザー位置を再読み込み
+              // 現在のユーザープロフィールも再読み込み
+              loadUserProfile();
             }}
             onClose={() => setShowGroupManagement(false)}
           />
