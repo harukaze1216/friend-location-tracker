@@ -25,6 +25,12 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   
   // 現在のユーザーが管理者かどうか
   const isUserAdmin = isAdmin(currentUser.uid);
+  
+  // デバッグ用ログ
+  console.log('デバッグ情報:');
+  console.log('現在のユーザーUID:', currentUser.uid);
+  console.log('環境変数 ADMIN_UIDS:', process.env.REACT_APP_ADMIN_UIDS);
+  console.log('管理者判定結果:', isUserAdmin);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
