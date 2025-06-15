@@ -90,8 +90,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       // ユーザープロフィールを更新（古いgroupIdフィールドも削除）
       await updateUserProfile(currentUser.uid, { 
         groupIds: updatedGroupIds,
-        groupId: undefined // 古いフィールドを明示的に削除
-      });
+        groupId: deleteField() // 古いフィールドを明示的に削除
+      } as any);
       
       onGroupsChange([...currentGroups, group]);
       onClose();
