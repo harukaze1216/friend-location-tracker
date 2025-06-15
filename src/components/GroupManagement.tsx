@@ -111,7 +111,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
     setError('');
     
     try {
-      await leaveSpecificGroup(group.id);
+      // まずFirestore上のグループから脱退を試行
+      try {
+        await leaveSpecificGroup(group.id);
+      } catch (groupError) {
+        // グループが既に削除されている場合は無視して続行
+        if (groupError instanceof Error && groupError.message.includes('Group not found')) {
+          console.log('グループは既に削除されています。ユーザープロフィールのみ更新します。');
+        } else {
+          throw groupError; // その他のエラーは再スロー
+        }
+      }
       
       // グループIDリストから削除
       const currentGroupIds = currentUser.groupIds || [];
@@ -120,8 +130,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       // ユーザープロフィールを更新
       await updateUserProfile(currentUser.uid, { 
         groupIds: updatedGroupIds,
-        groupId: undefined // 古いフィールドを明示的に削除
-      });
+        groupId: deleteField() // 古いフィールドを明示的に削除
+      } as any);
       
       // グループリストから削除
       const updatedGroups = currentGroups.filter(g => g.id !== group.id);

@@ -44,11 +44,7 @@ const generateUniqueCode = async (): Promise<string> => {
 // グループ作成
 export const createGroup = async (name: string, createdBy: string): Promise<Group> => {
   try {
-    console.log('グループ作成開始:', { name, createdBy });
-    
     const code = await generateUniqueCode();
-    console.log('生成されたコード:', code);
-    
     const groupData = {
       name: name.trim(),
       code,
@@ -57,12 +53,10 @@ export const createGroup = async (name: string, createdBy: string): Promise<Grou
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
-    console.log('グループデータ:', groupData);
 
     const docRef = await addDoc(collection(db, GROUPS_COLLECTION), groupData);
-    console.log('ドキュメント作成完了:', docRef.id);
     
-    const result = {
+    return {
       id: docRef.id,
       name: groupData.name,
       code: groupData.code,
@@ -71,8 +65,6 @@ export const createGroup = async (name: string, createdBy: string): Promise<Grou
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    console.log('グループ作成完了:', result);
-    return result;
   } catch (error) {
     console.error('Error creating group:', error);
     throw error;
@@ -150,34 +142,28 @@ export const joinGroup = async (groupId: string): Promise<void> => {
 // 複数グループから脱退（指定したグループのみ）
 export const leaveSpecificGroup = async (groupId: string): Promise<void> => {
   try {
-    console.log('脱退開始:', groupId);
     await runTransaction(db, async (transaction) => {
       const groupRef = doc(db, GROUPS_COLLECTION, groupId);
       const groupDoc = await transaction.get(groupRef);
       
-      console.log('グループ存在確認:', groupDoc.exists());
       if (!groupDoc.exists()) {
         throw new Error(`Group not found: ${groupId}`);
       }
       
       const groupData = groupDoc.data();
       const currentCount = groupData.memberCount || 0;
-      console.log('現在のメンバー数:', currentCount);
       
       if (currentCount <= 1) {
         // 最後のメンバーが脱退する場合、グループを削除
-        console.log('グループを削除');
         transaction.delete(groupRef);
       } else {
         // メンバー数を減少
-        console.log('メンバー数を減少');
         transaction.update(groupRef, {
           memberCount: increment(-1),
           updatedAt: serverTimestamp(),
         });
       }
     });
-    console.log('脱退完了');
   } catch (error) {
     console.error('Error leaving specific group:', error);
     throw error;
