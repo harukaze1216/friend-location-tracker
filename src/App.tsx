@@ -21,6 +21,7 @@ import {
   deleteUserLocation,
   getActiveUserLocations
 } from './services/userService';
+import { deleteField } from 'firebase/firestore';
 import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -81,8 +82,8 @@ function App() {
           // 古いデータを新しい形式に移行
           updateUserProfile(user.uid, { 
             groupIds: groupIds,
-            groupId: undefined // 古いフィールドを削除
-          }).catch(error => console.error('データ移行エラー:', error));
+            groupId: deleteField() // 古いフィールドを削除
+          } as any).catch(error => console.error('データ移行エラー:', error));
         }
       } else {
         setShowProfileSetup(true);

@@ -3,6 +3,7 @@ import { Group, UserProfile } from '../types';
 import { createGroup, findGroupByCode, joinGroup, leaveSpecificGroup } from '../services/groupService';
 import { updateUserProfile } from '../services/userService';
 import { isAdmin } from '../utils/admin';
+import { deleteField } from 'firebase/firestore';
 
 interface GroupManagementProps {
   currentUser: UserProfile;
@@ -44,8 +45,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       // ユーザープロフィールを更新（古いgroupIdフィールドも削除）
       await updateUserProfile(currentUser.uid, { 
         groupIds: updatedGroupIds,
-        groupId: undefined // 古いフィールドを明示的に削除
-      });
+        groupId: deleteField() // 古いフィールドを明示的に削除
+      } as any);
       
       onGroupsChange([...currentGroups, newGroup]);
       onClose();
