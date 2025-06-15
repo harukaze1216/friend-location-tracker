@@ -75,8 +75,14 @@ function App() {
         if (profile.groupIds && profile.groupIds.length > 0) {
           loadCurrentGroups(profile.groupIds);
         } else if (profile.groupId) {
-          // 後方互換性のため、古いgroupIdも対応
-          loadCurrentGroups([profile.groupId]);
+          // 後方互換性のため、古いgroupIdを新しい形式に移行
+          const groupIds = [profile.groupId];
+          loadCurrentGroups(groupIds);
+          // 古いデータを新しい形式に移行
+          updateUserProfile(user.uid, { 
+            groupIds: groupIds,
+            groupId: undefined // 古いフィールドを削除
+          }).catch(error => console.error('データ移行エラー:', error));
         }
       } else {
         setShowProfileSetup(true);
