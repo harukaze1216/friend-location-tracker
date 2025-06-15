@@ -51,7 +51,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       onClose();
     } catch (error) {
       console.error('Error creating group:', error);
-      setError('グループの作成に失敗しました');
+      const errorMessage = error instanceof Error ? error.message : 'グループの作成に失敗しました';
+      setError(`作成エラー: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
       onClose();
     } catch (error) {
       console.error('Error joining group:', error);
-      setError('グループへの参加に失敗しました');
+      const errorMessage = error instanceof Error ? error.message : 'グループへの参加に失敗しました';
+      setError(`参加エラー: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

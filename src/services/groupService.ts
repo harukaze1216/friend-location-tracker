@@ -44,7 +44,11 @@ const generateUniqueCode = async (): Promise<string> => {
 // グループ作成
 export const createGroup = async (name: string, createdBy: string): Promise<Group> => {
   try {
+    console.log('グループ作成開始:', { name, createdBy });
+    
     const code = await generateUniqueCode();
+    console.log('生成されたコード:', code);
+    
     const groupData = {
       name: name.trim(),
       code,
@@ -53,10 +57,12 @@ export const createGroup = async (name: string, createdBy: string): Promise<Grou
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
+    console.log('グループデータ:', groupData);
 
     const docRef = await addDoc(collection(db, GROUPS_COLLECTION), groupData);
+    console.log('ドキュメント作成完了:', docRef.id);
     
-    return {
+    const result = {
       id: docRef.id,
       name: groupData.name,
       code: groupData.code,
@@ -65,6 +71,8 @@ export const createGroup = async (name: string, createdBy: string): Promise<Grou
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    console.log('グループ作成完了:', result);
+    return result;
   } catch (error) {
     console.error('Error creating group:', error);
     throw error;
