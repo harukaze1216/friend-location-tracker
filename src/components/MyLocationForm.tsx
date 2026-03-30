@@ -16,12 +16,12 @@ interface MyLocationFormProps {
   onCancel: () => void;
 }
 
-const MyLocationForm: React.FC<MyLocationFormProps> = ({ 
-  position, 
+const MyLocationForm: React.FC<MyLocationFormProps> = ({
+  position,
   currentLocation,
   onSubmit,
-  onDelete, 
-  onCancel 
+  onDelete,
+  onCancel
 }) => {
   const [settings, setSettings] = useState(getSettings());
   const [locationType, setLocationType] = useState<'current' | 'scheduled'>(
@@ -34,27 +34,24 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
   const [location, setLocation] = useState('');
   const showDeleteButton = !!currentLocation;
 
-  // フェス期間の日付リスト（2025年に更新）
   const festivalDates = useMemo(() => [
     { value: '2025-08-09', label: '8月9日(土) - Day 1' },
     { value: '2025-08-10', label: '8月10日(日) - Day 2' },
     { value: '2025-08-11', label: '8月11日(月) - Day 3' }
   ], []);
 
-  // currentLocationが変更されたときに値を更新
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (currentLocation) {
       setLocationType(currentLocation.locationType);
-      setDate(currentLocation.date || festivalDates[0].value); // フェスの初日をデフォルトに
+      setDate(currentLocation.date || festivalDates[0].value);
       setTime(currentLocation.time || '');
       setEndTime(currentLocation.endTime || '');
       setComment(currentLocation.comment || '');
       setLocation(currentLocation.location || '');
     } else {
-      // 新規作成時は設定に基づいた初期値
       setLocationType(settings.defaultLocationType);
-      setDate(festivalDates[0].value); // フェスの初日をデフォルトに
+      setDate(festivalDates[0].value);
       setTime('');
       setEndTime('');
       setComment('');
@@ -62,25 +59,20 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     }
   }, [currentLocation, festivalDates, settings.defaultLocationType]);
 
-  // locationTypeが変更された時に時刻を自動設定
   useEffect(() => {
     if (locationType === 'current') {
-      // 現在地の場合は現在時刻を自動設定
       setTime(getCurrentTime());
       setDate(getTodayDate());
     } else if (!currentLocation) {
-      // 新規で予定地の場合は時刻をクリア
       setTime('');
     }
   }, [locationType, currentLocation]);
 
-  // 現在の日付を取得（デフォルト値用）
   function getTodayDate() {
     const today = new Date();
     return today.toISOString().split('T')[0];
   }
 
-  // 現在時刻を取得
   function getCurrentTime() {
     const now = new Date();
     const hours = now.getHours().toString().padStart(2, '0');
@@ -88,14 +80,11 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     return `${hours}:${minutes}`;
   }
 
-  // 選択された日付が今日かどうかチェック
   function isToday(selectedDate: string) {
     return selectedDate === getTodayDate();
   }
 
-  // 最小時間を取得（今日の場合のみ現在時刻制限）
   function getMinTime(selectedDate: string) {
-    // 今日の場合のみ時間制限、それ以外は自由に選択可能
     return isToday(selectedDate) ? getCurrentTime() : undefined;
   }
 
@@ -112,22 +101,28 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
     }
   };
 
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">自分の位置を更新</h3>
-          <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+    <div className="fixed inset-0 glass-dark flex items-center justify-center p-3 sm:p-4 z-50" onClick={onCancel}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-bold text-slate-800">自分の位置を更新</h3>
+            <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mb-4">
             座標: ({Math.round(position.x)}, {Math.round(position.y)})
           </p>
-          
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-            {/* 位置タイプ選択 */}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Location Type */}
             <div>
-              <div className="flex items-center justify-between mb-1 sm:mb-2">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                  位置の種類 *
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs sm:text-sm font-medium text-slate-700">
+                  位置の種類
                 </label>
                 <button
                   type="button"
@@ -136,56 +131,50 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                     const newSettings = updateSetting('defaultLocationType', newDefaultType);
                     setSettings(newSettings);
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-700 underline"
-                  title={`デフォルトを「${settings.defaultLocationType === 'current' ? '現在地' : '予定地'}」から切り替え`}
+                  className="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium"
                 >
-                  📝 デフォルト変更
+                  デフォルト変更
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setLocationType('current')}
-                  className={`p-2 sm:p-3 rounded border text-xs sm:text-sm font-medium ${
+                  className={`p-2.5 rounded-xl border-2 text-xs sm:text-sm font-medium transition-all ${
                     locationType === 'current'
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-400'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  📍 現在地
+                  現在地
                   {settings.defaultLocationType === 'current' && (
-                    <span className="ml-1 text-xs">★</span>
+                    <span className="ml-1 text-indigo-400">*</span>
                   )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setLocationType('scheduled')}
-                  className={`p-2 sm:p-3 rounded border text-xs sm:text-sm font-medium ${
+                  className={`p-2.5 rounded-xl border-2 text-xs sm:text-sm font-medium transition-all ${
                     locationType === 'scheduled'
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      ? 'bg-amber-50 text-amber-700 border-amber-400'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  📅 予定地
+                  予定地
                   {settings.defaultLocationType === 'scheduled' && (
-                    <span className="ml-1 text-xs">★</span>
+                    <span className="ml-1 text-amber-400">*</span>
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ★がデフォルト設定（新規登録時の初期値）
-              </p>
             </div>
 
-            {/* 日付選択（フェス期間） */}
+            {/* Date */}
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                日付 *
-              </label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">日付</label>
               <select
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs sm:text-sm"
+                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 text-xs sm:text-sm transition-all"
                 required
               >
                 {festivalDates.map((festDate) => (
@@ -196,13 +185,13 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               </select>
             </div>
 
-            {/* 時間設定 */}
+            {/* Time */}
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                {locationType === 'current' ? '現在時間' : '開始時間'} *
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+                {locationType === 'current' ? '現在時間' : '開始時間'}
               </label>
               {locationType === 'current' && (
-                <p className="text-xs text-blue-600 mb-1 sm:mb-2">現在地を選択すると自動で現在時刻が設定されます</p>
+                <p className="text-[11px] text-indigo-500 mb-1.5">現在地を選択すると自動で現在時刻が設定されます</p>
               )}
               <div className="flex gap-2">
                 <input
@@ -210,72 +199,66 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   min={getMinTime(date) || undefined}
-                  className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs sm:text-sm"
+                  className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 text-xs sm:text-sm transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setTime(getCurrentTime())}
-                  className="px-2 sm:px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-xs sm:text-sm whitespace-nowrap"
+                  className="px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 text-xs font-medium whitespace-nowrap transition-colors"
                 >
-                  現在時刻
+                  現在
                 </button>
               </div>
             </div>
 
-            {/* 終了時間（予定地の場合のみ） */}
+            {/* End Time */}
             {locationType === 'scheduled' && (
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                  終了時間 *
-                </label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">終了時間</label>
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   min={time || getMinTime(date) || undefined}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs sm:text-sm"
+                  className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-300 focus:border-amber-300 text-xs sm:text-sm transition-all"
                   required
                 />
               </div>
             )}
-            
-            {/* 場所フィールド */}
+
+            {/* Location */}
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                場所 (任意)
-              </label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">場所 (任意)</label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="例: メインステージ、フードコートなど"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs sm:text-sm"
+                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 text-xs sm:text-sm transition-all"
                 maxLength={50}
               />
             </div>
-            
+
+            {/* Comment */}
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                コメント (任意)
-              </label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">コメント (任意)</label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="何をしているか、どこにいるかなど..."
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs sm:text-sm"
+                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 text-xs sm:text-sm transition-all resize-none"
                 rows={2}
                 maxLength={200}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {comment.length}/200文字
-              </p>
+              <p className="text-[11px] text-slate-400 mt-1 text-right">{comment.length}/200</p>
             </div>
-            
-            <div className="flex gap-2 pt-2">
+
+            {/* Buttons */}
+            <div className="flex gap-2 pt-1">
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white py-2 sm:py-3 rounded hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm text-xs sm:text-sm font-medium"
+                className="flex-1 bg-indigo-500 text-white py-3 rounded-xl hover:bg-indigo-600 transition-colors text-sm font-medium"
               >
                 {currentLocation ? '更新' : '登録'}
               </button>
@@ -283,7 +266,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
                 <button
                   type="button"
                   onClick={onDelete}
-                  className="px-3 sm:px-4 bg-gradient-to-r from-red-400 to-red-500 text-white py-2 sm:py-3 rounded hover:from-red-500 hover:to-red-600 transition-all shadow-sm text-xs sm:text-sm font-medium"
+                  className="px-4 bg-red-500 text-white py-3 rounded-xl hover:bg-red-600 transition-colors text-sm font-medium"
                 >
                   削除
                 </button>
@@ -291,7 +274,7 @@ const MyLocationForm: React.FC<MyLocationFormProps> = ({
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white py-2 sm:py-3 rounded hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm text-xs sm:text-sm font-medium"
+                className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl hover:bg-slate-200 transition-colors text-sm font-medium"
               >
                 キャンセル
               </button>

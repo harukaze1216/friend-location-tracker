@@ -12,11 +12,11 @@ import GroupManagement from './components/GroupManagement';
 import { Location, MapPoint, UserProfile, UserLocation, Group } from './types';
 import { addLocation, getLocations, deleteLocation } from './services/locationService';
 import { getGroup } from './services/groupService';
-import { 
-  createUserProfile, 
-  getUserProfile, 
+import {
+  createUserProfile,
+  getUserProfile,
   updateUserProfile,
-  addUserLocation, 
+  addUserLocation,
   updateUserLocation,
   deleteUserLocation,
   getActiveUserLocations
@@ -27,7 +27,7 @@ import './App.css';
 
 function App() {
   const { user, loading: authLoading } = useAuth();
-  const mapImageUrl = `${process.env.PUBLIC_URL}/libefes_map.png`;
+  const mapImageUrl = '/libefes_map.png';
   const [locations, setLocations] = useState<Location[]>([]);
   const [userLocations, setUserLocations] = useState<UserLocation[]>([]);
   const [userProfiles, setUserProfiles] = useState<{ [uid: string]: UserProfile }>({});
@@ -41,7 +41,7 @@ function App() {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [locationTypeFilter, setLocationTypeFilter] = useState<'all' | 'current' | 'scheduled'>('all');
-  const [groupFilter, setGroupFilter] = useState<'all' | 'no-group' | string>('all'); // string はグループID
+  const [groupFilter, setGroupFilter] = useState<'all' | 'no-group' | string>('all');
   const [myLocationFormData, setMyLocationFormData] = useState<{ position: MapPoint; currentLocation?: UserLocation } | null>(null);
   const [showScheduledLocationsList, setShowScheduledLocationsList] = useState(false);
   const [selectedLocationDetail, setSelectedLocationDetail] = useState<UserLocation | null>(null);
@@ -64,7 +64,7 @@ function App() {
 
   const loadUserProfile = async () => {
     if (!user) return;
-    
+
     try {
       const profile = await getUserProfile(user.uid);
       if (profile) {
@@ -72,17 +72,14 @@ function App() {
         if (!profile.profileCompleted) {
           setShowProfileSetup(true);
         }
-        // グループ情報も読み込み
         if (profile.groupIds && profile.groupIds.length > 0) {
           loadCurrentGroups(profile.groupIds);
         } else if (profile.groupId) {
-          // 後方互換性のため、古いgroupIdを新しい形式に移行
           const groupIds = [profile.groupId];
           loadCurrentGroups(groupIds);
-          // 古いデータを新しい形式に移行
-          updateUserProfile(user.uid, { 
+          updateUserProfile(user.uid, {
             groupIds: groupIds,
-            groupId: deleteField() // 古いフィールドを削除
+            groupId: deleteField()
           } as any).catch(error => console.error('データ移行エラー:', error));
         }
       } else {
@@ -102,15 +99,13 @@ function App() {
       setCurrentGroups(validGroups);
     } catch (error) {
       console.error('Failed to load groups:', error);
-      // グループが見つからない場合は無視
     }
   };
 
   const loadUserLocations = async () => {
     try {
       const allUserLocations = await getActiveUserLocations();
-      
-      // 7日以上古い位置情報をフィルタリング
+
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const recentLocations = allUserLocations.filter(location => {
@@ -118,14 +113,12 @@ function App() {
         const locationDate = new Date(location.date + 'T00:00:00');
         return locationDate >= sevenDaysAgo;
       });
-      
+
       setUserLocations(recentLocations);
-      
-      // ユーザープロフィールを個別に取得
-      const profiles: { [uid: string]: UserProfile } = { ...userProfiles }; // 既存のプロフィールを保持
+
+      const profiles: { [uid: string]: UserProfile } = { ...userProfiles };
       const uniqueUserIds = Array.from(new Set(recentLocations.map(ul => ul.userId)));
-      
-      // プロフィール取得を並列化してパフォーマンス改善
+
       const profilePromises = uniqueUserIds
         .filter(userId => !profiles[userId])
         .map(async (userId) => {
@@ -135,12 +128,11 @@ function App() {
               return { userId, profile };
             }
           } catch (error) {
-            // エラーを静かに処理（削除されたユーザーなど）
             console.debug(`Profile not found for user ${userId}`);
           }
           return null;
         });
-      
+
       const profileResults = await Promise.all(profilePromises);
       profileResults.forEach(result => {
         if (result) {
@@ -168,8 +160,7 @@ function App() {
 
   const handleMapClick = (point: MapPoint) => {
     if (!currentUserProfile?.profileCompleted) return;
-    
-    // 新しい位置登録のため、常にcurrentLocationはnullにする（編集モードではなく新規登録）
+
     setMyLocationFormData({
       position: point,
       currentLocation: undefined
@@ -200,7 +191,7 @@ function App() {
     try {
       setLoading(true);
       await updateUserProfile(currentUserProfile.uid, updatedData);
-      
+
       const updatedProfile = { ...currentUserProfile, ...updatedData };
       setCurrentUserProfile(updatedProfile);
       setShowProfileEdit(false);
@@ -212,21 +203,20 @@ function App() {
     }
   };
 
-  const handleMyLocationSubmit = async (data: { 
+  const handleMyLocationSubmit = async (data: {
     date: string;
-    time: string; 
-    endTime?: string; 
+    time: string;
+    endTime?: string;
     comment: string;
-    location?: string; 
+    location?: string;
     locationType: 'current' | 'scheduled';
   }) => {
     if (!myLocationFormData || !user) return;
 
     try {
       setLoading(true);
-      
+
       if (myLocationFormData.currentLocation) {
-        // 既存の位置を更新
         const updateData: any = {
           x: myLocationFormData.position.x,
           y: myLocationFormData.position.y,
@@ -245,7 +235,6 @@ function App() {
         }
         await updateUserLocation(myLocationFormData.currentLocation.id, updateData);
       } else {
-        // 新しい位置を作成
         const newLocationData: any = {
           userId: user.uid,
           x: myLocationFormData.position.x,
@@ -266,7 +255,7 @@ function App() {
         }
         await addUserLocation(newLocationData);
       }
-      
+
       await loadUserLocations();
       setMyLocationFormData(null);
     } catch (error) {
@@ -279,7 +268,6 @@ function App() {
 
 
   const handleUserLocationClick = (userLocation: UserLocation) => {
-    // 現在は詳細モーダルで表示
     setSelectedLocationDetail(userLocation);
   };
 
@@ -307,7 +295,7 @@ function App() {
 
   const handleUserLocationDelete = async () => {
     if (!myLocationFormData?.currentLocation) return;
-    
+
     if (window.confirm('この位置情報を削除しますか？')) {
       try {
         setLoading(true);
@@ -352,7 +340,7 @@ function App() {
         userId: user.uid,
         userDisplayName: user.displayName || 'Unknown User',
       };
-      
+
       await addLocation(newLocation);
       await loadLocations();
       setSelectedPoint(null);
@@ -406,7 +394,6 @@ function App() {
       if (groupFilter === 'no-group') {
         return !userProfile?.groupIds?.length && !userProfile?.groupId;
       } else {
-        // 特定のグループでフィルター
         const userGroupIds = userProfile?.groupIds || (userProfile?.groupId ? [userProfile.groupId] : []);
         return userGroupIds.includes(groupFilter);
       }
@@ -416,10 +403,10 @@ function App() {
   // 認証状態の読み込み中
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
-        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md text-center max-w-sm sm:max-w-md mx-auto">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">認証状態を確認中...</p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+        <div className="glass rounded-2xl shadow-xl p-8 text-center max-w-sm mx-4">
+          <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin mx-auto mb-5"></div>
+          <p className="text-slate-500 font-medium">認証状態を確認中...</p>
         </div>
       </div>
     );
@@ -428,18 +415,18 @@ function App() {
   // 未ログイン状態
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50 flex items-center justify-center">
-        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md text-center max-w-sm sm:max-w-md mx-auto">
-          <img 
-            src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
-            alt="リベ大お金の勉強フェス2025" 
-            className="w-full max-w-xs mx-auto mb-4"
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+        <div className="glass rounded-2xl shadow-xl p-8 sm:p-10 text-center max-w-sm mx-4">
+          <img
+            src="/img_header_logo.png"
+            alt="リベ大お金の勉強フェス2025"
+            className="w-full max-w-[240px] mx-auto mb-6"
           />
-          <h1 className="text-xl sm:text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-extrabold mb-1 bg-gradient-to-r from-indigo-600 via-emerald-500 to-amber-500 bg-clip-text text-transparent">
             ともどこ
           </h1>
-          <p className="text-sm text-gray-500 mb-4">友達どこにいる？</p>
-          <p className="text-gray-600 mb-6">利用するにはログインが必要です</p>
+          <p className="text-slate-400 text-sm mb-6">友達どこにいる?</p>
+          <p className="text-slate-500 mb-8 text-sm">利用するにはログインが必要です</p>
           <LoginButton />
         </div>
       </div>
@@ -447,111 +434,113 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-orange-50">
-      <div className="max-w-6xl mx-auto px-2 sm:px-4">
-        <div className="flex justify-between items-center mb-4 py-2">
-          <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
-            <img 
-              src={`${process.env.PUBLIC_URL}/img_header_logo.png`} 
-              alt="リベ大お金の勉強フェス2025" 
-              className="h-6 sm:h-8 lg:h-10 flex-shrink-0"
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6">
+        {/* Header */}
+        <header className="flex justify-between items-center py-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <img
+              src="/img_header_logo.png"
+              alt="リベ大お金の勉強フェス2025"
+              className="h-7 sm:h-9 lg:h-11 flex-shrink-0"
             />
-            <div className="min-w-0 flex-1">
-              <h1 className="text-sm sm:text-lg lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent leading-tight">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl lg:text-2xl font-extrabold bg-gradient-to-r from-indigo-600 via-emerald-500 to-amber-500 bg-clip-text text-transparent leading-tight">
                 ともどこ
               </h1>
-              <p className="text-xs text-gray-500 hidden sm:block leading-tight">友達どこにいる？</p>
+              <p className="text-xs text-slate-400 hidden sm:block leading-tight">友達どこにいる?</p>
             </div>
           </div>
           <LoginButton />
-        </div>
+        </header>
 
+        {/* Profile Card */}
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-3 mb-3">
+          <div className="glass rounded-2xl shadow-lg p-4 mb-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {currentUserProfile.avatarUrl ? (
-                  <img 
-                    src={currentUserProfile.avatarUrl} 
+                  <img
+                    src={currentUserProfile.avatarUrl}
                     alt={currentUserProfile.displayName}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-indigo-100"
                   />
                 ) : (
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm sm:text-base ring-2 ring-indigo-100">
                     {currentUserProfile.displayName.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <h2 className="text-sm sm:text-md font-bold">{currentUserProfile.displayName}</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-800">{currentUserProfile.displayName}</h2>
                   {currentUserProfile.libeCityName && (
-                    <p className="text-xs text-gray-600">{currentUserProfile.libeCityName}</p>
+                    <p className="text-xs text-slate-500">{currentUserProfile.libeCityName}</p>
                   )}
                   {currentGroups.length > 0 && (
-                    <p className="text-xs text-green-600">
-                      👥 {currentGroups.length}グループ参加中
+                    <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                      {currentGroups.length}グループ参加中
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <div className="flex gap-2">
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex gap-1.5">
                   <button
                     onClick={() => setShowScheduledLocationsList(true)}
-                    className="text-xs text-orange-600 hover:text-orange-700 underline flex items-center gap-1"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                   >
-                    📅 予定一覧
+                    予定
                     {userLocations.filter(ul => ul.locationType === 'scheduled' && ul.userId === user?.uid).length > 0 && (
-                      <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center">
+                      <span className="bg-amber-500 text-white text-[10px] rounded-full w-4.5 h-4.5 min-w-[18px] flex items-center justify-center font-bold">
                         {userLocations.filter(ul => ul.locationType === 'scheduled' && ul.userId === user?.uid).length}
                       </span>
                     )}
                   </button>
                   <button
                     onClick={() => setShowGroupManagement(true)}
-                    className="text-xs text-purple-600 hover:text-purple-700 underline"
+                    className="px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
                   >
-                    👥 グループ
+                    グループ
                   </button>
                   <button
                     onClick={() => setShowProfileEdit(true)}
-                    className="text-xs text-gray-500 hover:text-blue-600 underline"
+                    className="px-2.5 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
                   >
                     編集
                   </button>
                 </div>
-                <p className="text-xs text-blue-600 hidden sm:block">地図をクリックして位置を設定・更新</p>
-                <p className="text-xs text-blue-600 sm:hidden">タップして位置設定</p>
+                <p className="text-[11px] text-indigo-500 hidden sm:block">地図をクリックして位置を設定</p>
+                <p className="text-[11px] text-indigo-500 sm:hidden">タップして位置設定</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* フィルタ機能 */}
+        {/* Filters */}
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-3 mb-3">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-semibold">フィルタ</h3>
+          <div className="glass rounded-2xl shadow-lg p-4 mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-slate-700">フィルタ</h3>
               <button
                 onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
               >
-                {isFilterCollapsed ? '📋' : '📋'}
-                <span className="ml-1 text-xs">
-                  {isFilterCollapsed ? '展開' : '折りたたみ'}
-                </span>
+                <svg className={`w-4 h-4 transition-transform ${isFilterCollapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                {isFilterCollapsed ? '詳細' : '閉じる'}
               </button>
             </div>
-            
-            {/* クイックフィルター - 常に表示 */}
-            <div className="flex flex-wrap gap-2 mb-3">
+
+            {/* Quick Filters */}
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
                   setLocationTypeFilter('scheduled');
                   setSelectedUser(user?.uid || '');
                 }}
-                className="px-3 py-1 bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-full text-xs hover:from-orange-500 hover:to-orange-600 transition-all shadow-sm"
+                className="px-3 py-1.5 bg-amber-500 text-white rounded-full text-xs font-medium hover:bg-amber-600 transition-colors shadow-sm"
               >
-                📅 自分の予定
+                自分の予定
               </button>
               <button
                 onClick={() => {
@@ -559,9 +548,9 @@ function App() {
                   setSelectedUser('');
                   setGroupFilter('all');
                 }}
-                className="px-3 py-1 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-full text-xs hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
+                className="px-3 py-1.5 bg-indigo-500 text-white rounded-full text-xs font-medium hover:bg-indigo-600 transition-colors shadow-sm"
               >
-                📍 現在地一覧
+                現在地一覧
               </button>
               {currentGroups.map((group) => (
                 <button
@@ -571,9 +560,9 @@ function App() {
                     setLocationTypeFilter('all');
                     setSelectedUser('');
                   }}
-                  className="px-3 py-1 bg-gradient-to-r from-purple-400 to-purple-500 text-white rounded-full text-xs hover:from-purple-500 hover:to-purple-600 transition-all shadow-sm"
+                  className="px-3 py-1.5 bg-purple-500 text-white rounded-full text-xs font-medium hover:bg-purple-600 transition-colors shadow-sm"
                 >
-                  👥 {group.name}
+                  {group.name}
                 </button>
               ))}
               <button
@@ -582,9 +571,9 @@ function App() {
                   setSelectedDate(today);
                   setLocationTypeFilter('all');
                 }}
-                className="px-3 py-1 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-full text-xs hover:from-green-500 hover:to-green-600 transition-all shadow-sm"
+                className="px-3 py-1.5 bg-emerald-500 text-white rounded-full text-xs font-medium hover:bg-emerald-600 transition-colors shadow-sm"
               >
-                📅 今日
+                今日
               </button>
               <button
                 onClick={() => {
@@ -594,48 +583,48 @@ function App() {
                   setSelectedTime('');
                   setSelectedUser('');
                 }}
-                className="px-3 py-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-full text-xs hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm"
+                className="px-3 py-1.5 bg-slate-400 text-white rounded-full text-xs font-medium hover:bg-slate-500 transition-colors shadow-sm"
               >
                 クリア
               </button>
             </div>
-            
-            {/* 詳細フィルター - 折りたたみ可能 */}
+
+            {/* Detailed Filters */}
             {!isFilterCollapsed && (
-              <div className="space-y-3 border-t pt-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
+              <div className="mt-4 pt-4 border-t border-slate-200/60">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">位置タイプ</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">位置タイプ</label>
                     <select
                       value={locationTypeFilter}
                       onChange={(e) => setLocationTypeFilter(e.target.value as 'all' | 'current' | 'scheduled')}
-                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
                     >
                       <option value="all">すべて表示</option>
-                      <option value="current">📍 現在地のみ</option>
-                      <option value="scheduled">📅 予定地のみ</option>
+                      <option value="current">現在地のみ</option>
+                      <option value="scheduled">予定地のみ</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">グループ</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">グループ</label>
                     <select
                       value={groupFilter}
                       onChange={(e) => setGroupFilter(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
                     >
                       <option value="all">すべて表示</option>
                       {currentGroups.map((group) => (
-                        <option key={group.id} value={group.id}>👥 {group.name}のみ</option>
+                        <option key={group.id} value={group.id}>{group.name}のみ</option>
                       ))}
                       <option value="no-group">グループ未参加のみ</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">日付で絞り込み</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">日付</label>
                     <select
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
                     >
                       <option value="">すべての日付</option>
                       {Array.from(new Set(userLocations.map(ul => ul.date).filter(Boolean))).sort().map(date => {
@@ -648,11 +637,11 @@ function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">時間で絞り込み</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">時間</label>
                     <select
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
                     >
                       <option value="">すべての時間</option>
                       {Array.from(new Set([...locations.map(l => l.time), ...userLocations.map(ul => ul.time)])).sort().map(time => (
@@ -661,11 +650,11 @@ function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ユーザーで絞り込み</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">ユーザー</label>
                     <select
                       value={selectedUser}
                       onChange={(e) => setSelectedUser(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-xs sm:text-sm touch-manipulation"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
                     >
                       <option value="">すべてのユーザー</option>
                       {Object.values(userProfiles).map(profile => (
@@ -679,9 +668,9 @@ function App() {
           </div>
         )}
 
-        {/* 地図表示 - 大きく表示 */}
-        <div className="bg-white rounded-lg shadow-md p-2 sm:p-4 mb-4">
-          <h2 className="text-md sm:text-lg font-bold mb-2 sm:mb-4 bg-gradient-to-r from-blue-600 via-green-600 to-orange-600 bg-clip-text text-transparent">
+        {/* Map */}
+        <div className="glass rounded-2xl shadow-lg p-3 sm:p-5 mb-4">
+          <h2 className="text-base sm:text-lg font-bold mb-3 bg-gradient-to-r from-indigo-600 via-emerald-500 to-amber-500 bg-clip-text text-transparent">
             リベ大フェス会場マップ
           </h2>
           <MapViewer
@@ -695,9 +684,9 @@ function App() {
           />
         </div>
 
-        {/* 位置情報リスト - コンパクト表示 */}
+        {/* Location List */}
         {currentUserProfile?.profileCompleted && (
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4">
+          <div className="glass rounded-2xl shadow-lg p-4 sm:p-5 mb-6">
             <LocationList
               locations={locations}
               selectedTime={selectedTime}
@@ -709,13 +698,17 @@ function App() {
           </div>
         )}
 
+        {/* Loading Overlay */}
         {loading && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-4 rounded">読み込み中...</div>
+          <div className="fixed inset-0 glass-dark flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border-2 border-indigo-200 border-t-indigo-500 animate-spin"></div>
+              <span className="text-slate-600 font-medium text-sm">読み込み中...</span>
+            </div>
           </div>
         )}
 
-        {/* プロフィール設定ダイアログ */}
+        {/* Modals */}
         {showProfileSetup && user && (
           <UserProfileSetup
             user={user}
@@ -723,7 +716,6 @@ function App() {
           />
         )}
 
-        {/* プロフィール編集ダイアログ */}
         {showProfileEdit && currentUserProfile && (
           <ProfileEdit
             currentProfile={currentUserProfile}
@@ -732,7 +724,6 @@ function App() {
           />
         )}
 
-        {/* 自分の位置設定ダイアログ */}
         {myLocationFormData && (
           <MyLocationForm
             position={myLocationFormData.position}
@@ -743,7 +734,6 @@ function App() {
           />
         )}
 
-        {/* 予定地一覧ダイアログ */}
         {showScheduledLocationsList && (
           <ScheduledLocationsList
             userLocations={userLocations}
@@ -755,7 +745,6 @@ function App() {
           />
         )}
 
-        {/* 位置詳細モーダル */}
         {selectedLocationDetail && (
           <LocationDetailModal
             userLocation={selectedLocationDetail}
@@ -767,27 +756,22 @@ function App() {
           />
         )}
 
-        {/* グループ管理ダイアログ */}
         {showGroupManagement && currentUserProfile && (
           <GroupManagement
             currentUser={currentUserProfile}
             currentGroups={currentGroups}
             onGroupsChange={(groups) => {
               setCurrentGroups(groups);
-              // プロフィール情報も更新
               const groupIds = groups.map(g => g.id);
               setCurrentUserProfile(prev => prev ? { ...prev, groupIds } : null);
-              // ユーザープロフィール情報もリセットして再読み込み
               setUserProfiles({});
-              loadUserLocations(); // グループ変更後にユーザー位置を再読み込み
-              // 現在のユーザープロフィールも再読み込み
+              loadUserLocations();
               loadUserProfile();
             }}
             onClose={() => setShowGroupManagement(false)}
           />
         )}
 
-        {/* 従来の友達位置登録ダイアログ */}
         {user && selectedPoint && (
           <LocationForm
             selectedPoint={selectedPoint}

@@ -6,7 +6,7 @@
  * @returns 管理者の場合true
  */
 export const isAdmin = (uid: string): boolean => {
-  const adminUids = process.env.REACT_APP_ADMIN_UIDS?.split(',').map(id => id.trim()) || [];
+  const adminUids = (import.meta.env.VITE_ADMIN_UIDS ?? '').split(',').map((id: string) => id.trim()).filter(Boolean);
   return adminUids.includes(uid);
 };
 

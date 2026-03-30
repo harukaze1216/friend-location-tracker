@@ -23,8 +23,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // 現在のユーザーが管理者かどうか
+
   const isUserAdmin = isAdmin(currentUser.uid);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
@@ -33,21 +32,18 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
     setLoading(true);
     setError('');
-    
+
     try {
-      // 新しいグループを作成
       const newGroup = await createGroup(groupName.trim(), currentUser.uid);
-      
-      // 現在のグループリストに追加
+
       const currentGroupIds = currentUser.groupIds || [];
       const updatedGroupIds = [...currentGroupIds, newGroup.id];
-      
-      // ユーザープロフィールを更新（古いgroupIdフィールドも削除）
-      await updateUserProfile(currentUser.uid, { 
+
+      await updateUserProfile(currentUser.uid, {
         groupIds: updatedGroupIds,
-        groupId: deleteField() // 古いフィールドを明示的に削除
+        groupId: deleteField()
       } as any);
-      
+
       onGroupsChange([...currentGroups, newGroup]);
       onClose();
     } catch (error) {
@@ -65,34 +61,29 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
     setLoading(true);
     setError('');
-    
+
     try {
-      // グループを検索
       const group = await findGroupByCode(joinCode.trim());
       if (!group) {
         setError('グループコードが見つかりません');
         return;
       }
 
-      // 既に参加しているかチェック
       const currentGroupIds = currentUser.groupIds || [];
       if (currentGroupIds.includes(group.id)) {
         setError('既にこのグループに参加しています');
         return;
       }
 
-      // 新しいグループに参加
       await joinGroup(group.id);
-      
-      // グループIDリストに追加
+
       const updatedGroupIds = [...currentGroupIds, group.id];
-      
-      // ユーザープロフィールを更新（古いgroupIdフィールドも削除）
-      await updateUserProfile(currentUser.uid, { 
+
+      await updateUserProfile(currentUser.uid, {
         groupIds: updatedGroupIds,
-        groupId: deleteField() // 古いフィールドを明示的に削除
+        groupId: deleteField()
       } as any);
-      
+
       onGroupsChange([...currentGroups, group]);
       onClose();
     } catch (error) {
@@ -109,31 +100,26 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
     setLoading(true);
     setError('');
-    
+
     try {
-      // まずFirestore上のグループから脱退を試行
       try {
         await leaveSpecificGroup(group.id);
       } catch (groupError) {
-        // グループが既に削除されている場合は無視して続行
         if (groupError instanceof Error && groupError.message.includes('Group not found')) {
           console.log('グループは既に削除されています。ユーザープロフィールのみ更新します。');
         } else {
-          throw groupError; // その他のエラーは再スロー
+          throw groupError;
         }
       }
-      
-      // グループIDリストから削除
+
       const currentGroupIds = currentUser.groupIds || [];
       const updatedGroupIds = currentGroupIds.filter(id => id !== group.id);
-      
-      // ユーザープロフィールを更新
-      await updateUserProfile(currentUser.uid, { 
+
+      await updateUserProfile(currentUser.uid, {
         groupIds: updatedGroupIds,
-        groupId: deleteField() // 古いフィールドを明示的に削除
+        groupId: deleteField()
       } as any);
-      
-      // グループリストから削除
+
       const updatedGroups = currentGroups.filter(g => g.id !== group.id);
       onGroupsChange(updatedGroups);
     } catch (error) {
@@ -146,21 +132,20 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 glass-dark flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">グループ管理</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-xl"
-            >
-              ×
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-bold text-slate-800">グループ管理</h3>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -169,20 +154,20 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
             <div className="space-y-4">
               {currentGroups.length > 0 ? (
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-800 mb-2">参加中のグループ</h4>
+                  <h4 className="text-sm font-semibold text-slate-600">参加中のグループ</h4>
                   {currentGroups.map((group) => (
-                    <div key={group.id} className="p-4 bg-green-50 border border-green-200 rounded">
-                      <p className="text-green-700 font-medium">{group.name}</p>
-                      <p className="text-sm text-green-600 mb-2">
-                        参加コード: <code className="bg-green-100 px-2 py-1 rounded font-mono">{group.code}</code>
+                    <div key={group.id} className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <p className="text-emerald-800 font-semibold">{group.name}</p>
+                      <p className="text-sm text-emerald-600 mt-1">
+                        参加コード: <code className="bg-emerald-100 px-2 py-0.5 rounded-lg font-mono text-xs">{group.code}</code>
                       </p>
-                      <p className="text-sm text-green-600 mb-3">
-                        メンバー数: {group.memberCount}人
+                      <p className="text-sm text-emerald-600 mt-0.5">
+                        メンバー: {group.memberCount}人
                       </p>
                       <button
                         onClick={() => handleLeaveGroup(group)}
                         disabled={loading}
-                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 text-sm"
+                        className="mt-3 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-50 transition-colors"
                       >
                         脱退
                       </button>
@@ -190,29 +175,28 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded">
-                  <p className="text-gray-600 mb-4">まだどのグループにも参加していません</p>
+                <div className="p-6 bg-slate-50 rounded-xl text-center">
+                  <p className="text-slate-500 text-sm">まだどのグループにも参加していません</p>
                 </div>
               )}
-              
-              {/* 新規作成・参加ボタン（常に表示） */}
-              <div className="space-y-2">
+
+              <div className="space-y-2 pt-2">
                 {isUserAdmin && (
                   <button
                     onClick={() => setMode('create')}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded hover:from-blue-500 hover:to-blue-600 transition-all shadow-sm"
+                    className="w-full px-4 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors font-medium text-sm"
                   >
-                    🆕 新しいグループを作成
+                    新しいグループを作成
                   </button>
                 )}
                 <button
                   onClick={() => setMode('join')}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white rounded hover:from-green-500 hover:to-green-600 transition-all shadow-sm"
+                  className="w-full px-4 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-medium text-sm"
                 >
-                  🔗 グループに参加
+                  グループに参加
                 </button>
                 {!isUserAdmin && (
-                  <p className="text-xs text-gray-500 text-center mt-2">
+                  <p className="text-[11px] text-slate-400 text-center mt-1">
                     グループの作成は管理者のみ可能です
                   </p>
                 )}
@@ -222,38 +206,34 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
           {mode === 'create' && (
             <div>
-              <h4 className="font-medium mb-4">新しいグループを作成</h4>
+              <h4 className="text-sm font-semibold text-slate-600 mb-4">新しいグループを作成</h4>
               <form onSubmit={handleCreateGroup} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    グループ名 *
-                  </label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">グループ名</label>
                   <input
                     type="text"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                     placeholder="例: リベ大友達班"
-                    className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 text-sm transition-all"
                     maxLength={30}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {groupName.length}/30文字
-                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">{groupName.length}/30文字</p>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={loading || !groupName.trim()}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 transition-all shadow-sm"
+                    className="flex-1 px-4 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 disabled:opacity-50 transition-colors font-medium text-sm"
                   >
                     {loading ? '作成中...' : '作成'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="px-4 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all"
+                    className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-medium text-sm"
                   >
                     戻る
                   </button>
@@ -264,38 +244,36 @@ const GroupManagement: React.FC<GroupManagementProps> = ({
 
           {mode === 'join' && (
             <div>
-              <h4 className="font-medium mb-4">グループに参加</h4>
+              <h4 className="text-sm font-semibold text-slate-600 mb-4">グループに参加</h4>
               <form onSubmit={handleJoinGroup} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    参加コード *
-                  </label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">参加コード</label>
                   <input
                     type="text"
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    placeholder="例: ABC123"
-                    className="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:border-transparent font-mono text-center text-lg tracking-wider"
+                    placeholder="ABC123"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-300 focus:border-emerald-300 font-mono text-center text-lg tracking-[0.3em] transition-all"
                     maxLength={6}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[11px] text-slate-400 mt-1.5">
                     グループ作成者から教えてもらった6桁のコードを入力
                   </p>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={loading || !joinCode.trim()}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-green-400 to-green-500 text-white rounded hover:from-green-500 hover:to-green-600 disabled:opacity-50 transition-all shadow-sm"
+                    className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-colors font-medium text-sm"
                   >
                     {loading ? '参加中...' : '参加'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('menu')}
-                    className="px-4 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all"
+                    className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-medium text-sm"
                   >
                     戻る
                   </button>
