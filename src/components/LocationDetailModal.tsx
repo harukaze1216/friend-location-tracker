@@ -27,13 +27,13 @@ const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     const locationDate = new Date(userLocation.date + 'T00:00:00');
     const todayDate = new Date(today + 'T00:00:00');
-    
+
     if (locationDate < todayDate) return true;
     if (locationDate > todayDate) return false;
-    
+
     if (locationDate.getTime() === todayDate.getTime()) {
       if (userLocation.locationType === 'scheduled' && userLocation.endTime) {
         return userLocation.endTime < currentTime;
@@ -41,52 +41,52 @@ const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
         const [hours, minutes] = userLocation.time.split(':').map(Number);
         const locationMinutes = hours * 60 + minutes;
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        return (currentMinutes - locationMinutes) > 120; // 現在地は2時間後に過去扱い
+        return (currentMinutes - locationMinutes) > 120;
       }
     }
-    
+
     return false;
   };
 
   const isExpired = isPast();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 glass-dark flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6">
-          {/* ヘッダー */}
-          <div className="flex justify-between items-start mb-4">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-5">
             <div className="flex items-center gap-3">
               {userProfile?.avatarUrl ? (
                 <img
                   src={userProfile.avatarUrl}
                   alt={userProfile.displayName}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                  className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold border-2 border-gray-200">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center text-white font-bold text-lg ring-2 ring-slate-100">
                   {userProfile?.displayName?.charAt(0) || 'U'}
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className="text-lg font-bold text-slate-800">
                   {userProfile?.displayName || 'Unknown User'}
                 </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-sm px-2 py-1 rounded-full ${
-                    userLocation.locationType === 'scheduled' 
-                      ? 'bg-orange-100 text-orange-700' 
-                      : 'bg-blue-100 text-blue-700'
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    userLocation.locationType === 'scheduled'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-indigo-100 text-indigo-700'
                   }`}>
-                    {userLocation.locationType === 'scheduled' ? '📅 予定地' : '📍 現在地'}
+                    {userLocation.locationType === 'scheduled' ? '予定地' : '現在地'}
                   </span>
                   {isCurrentUser && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
                       自分
                     </span>
                   )}
                   {isExpired && (
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
                       終了
                     </span>
                   )}
@@ -95,66 +95,57 @@ const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
             >
-              ×
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
-          {/* 詳細情報 */}
-          <div className="space-y-4">
-            {/* 日付・時間 */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-700 mb-2">📅 日時</h3>
+          {/* Details */}
+          <div className="space-y-3">
+            <div className="bg-slate-50 rounded-xl p-4">
+              <h3 className="font-semibold text-slate-600 text-xs uppercase tracking-wide mb-2">日時</h3>
               <div className="space-y-1">
-                <p className="text-sm">
-                  <span className="font-medium">日付:</span> {formatDate(userLocation.date)}
+                <p className="text-sm text-slate-800">
+                  <span className="text-slate-500">日付</span> {formatDate(userLocation.date)}
                 </p>
-                <p className="text-sm">
-                  <span className="font-medium">開始:</span> {userLocation.time}
+                <p className="text-sm text-slate-800">
+                  <span className="text-slate-500">開始</span> {userLocation.time}
                 </p>
                 {userLocation.endTime && (
-                  <p className="text-sm">
-                    <span className="font-medium">終了:</span> {userLocation.endTime}
+                  <p className="text-sm text-slate-800">
+                    <span className="text-slate-500">終了</span> {userLocation.endTime}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* 場所 */}
             {userLocation.location && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-700 mb-2">📍 場所</h3>
-                <p className="text-sm">{userLocation.location}</p>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <h3 className="font-semibold text-slate-600 text-xs uppercase tracking-wide mb-2">場所</h3>
+                <p className="text-sm text-slate-800">{userLocation.location}</p>
               </div>
             )}
 
-            {/* コメント */}
             {userLocation.comment && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-700 mb-2">💬 コメント</h3>
-                <p className="text-sm">{userLocation.comment}</p>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <h3 className="font-semibold text-slate-600 text-xs uppercase tracking-wide mb-2">コメント</h3>
+                <p className="text-sm text-slate-800">{userLocation.comment}</p>
               </div>
             )}
-
-            {/* 座標情報 */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-700 mb-2">🗺️ 座標</h3>
-              <p className="text-sm text-gray-600">
-                X: {Math.round(userLocation.x)}, Y: {Math.round(userLocation.y)}
-              </p>
-            </div>
           </div>
 
-          {/* アクションボタン */}
+          {/* Actions */}
           <div className="flex gap-3 mt-6">
             {isCurrentUser ? (
               <>
                 <button
                   onClick={onEdit}
-                  className="flex-1 py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 py-3 px-4 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors text-sm"
                 >
-                  ✏️ 編集
+                  編集
                 </button>
                 <button
                   onClick={() => {
@@ -162,15 +153,15 @@ const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                       onDelete();
                     }
                   }}
-                  className="flex-1 py-3 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex-1 py-3 px-4 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors text-sm"
                 >
-                  🗑️ 削除
+                  削除
                 </button>
               </>
             ) : (
               <button
                 onClick={onClose}
-                className="w-full py-3 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="w-full py-3 px-4 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors text-sm"
               >
                 閉じる
               </button>
